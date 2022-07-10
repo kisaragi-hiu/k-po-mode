@@ -945,7 +945,7 @@ all reachable through 'M-x customize', in group 'Emacs.Editing.I18n.Po'."
   (let ((map (make-sparse-keymap)))
     (define-key map "\C-c\C-a" 'po-subedit-cycle-auxiliary)
     (define-key map "\C-c\C-c" 'po-subedit-exit)
-    (define-key map "\C-c\C-'" 'po-subedit-exit)
+    (define-key map (kbd "C-c C-'") 'po-subedit-exit)
     (define-key map "\C-c\C-e" 'po-subedit-ediff)
     (define-key map "\C-c\C-k" 'po-subedit-abort)
     map)
