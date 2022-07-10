@@ -942,14 +942,15 @@ all reachable through 'M-x customize', in group 'Emacs.Editing.I18n.Po'."
   (run-hooks 'po-mode-hook))
 
 (defvar po-subedit-mode-map
-  ;; Use (make-keymap) because (make-sparse-keymap) does not work on Demacs.
-  (let ((po-subedit-mode-map (make-keymap)))
-    (define-key po-subedit-mode-map "\C-c\C-a" 'po-subedit-cycle-auxiliary)
-    (define-key po-subedit-mode-map "\C-c\C-c" 'po-subedit-exit)
-    (define-key po-subedit-mode-map "\C-c\C-e" 'po-subedit-ediff)
-    (define-key po-subedit-mode-map "\C-c\C-k" 'po-subedit-abort)
-    po-subedit-mode-map)
+  (let ((map (make-sparse-keymap)))
+    (define-key map "\C-c\C-a" 'po-subedit-cycle-auxiliary)
+    (define-key map "\C-c\C-c" 'po-subedit-exit)
+    (define-key map "\C-c\C-'" 'po-subedit-exit)
+    (define-key map "\C-c\C-e" 'po-subedit-ediff)
+    (define-key map "\C-c\C-k" 'po-subedit-abort)
+    map)
   "Keymap while editing a PO mode entry (or the full PO file).")
+
 
 ;;; Window management.
 
@@ -1003,9 +1004,9 @@ Then, update the mode line counters."
 (defvar po-fuzzy-regexp)
 (defvar po-untranslated-regexp)
 
-(defun po-compute-counters (flag)
-  "Prepare counters for mode line display.  If FLAG, also echo entry position."
-  (and flag (po-find-span-of-entry))
+(defun po-compute-counters (echo)
+  "Prepare counters for mode line display.  If ECHO, also echo entry position."
+  (and echo (po-find-span-of-entry))
   (setq po-translated-counter 0
         po-fuzzy-counter 0
         po-untranslated-counter 0
@@ -1025,13 +1026,13 @@ Then, update the mode line counters."
             ;; Start counting
             (while (re-search-forward po-any-msgstr-block-regexp nil t)
               (and (= (% total 20) 0)
-                   (if flag
+                   (if echo
                        (message (_"Position %d/%d") position total)
                      (message (_"Position %d") total)))
               (setq here (point))
               (goto-char (match-beginning 0))
               (setq total (1+ total))
-              (and flag (eq (point) current) (setq position total))
+              (and echo (eq (point) current) (setq position total))
               (cond ((eq (following-char) ?#)
                      (setq po-obsolete-counter (1+ po-obsolete-counter)))
                     ((looking-at po-untranslated-regexp)
@@ -1049,7 +1050,7 @@ Then, update the mode line counters."
         '()))
 
     ;; Push the results out.
-    (if flag
+    (if echo
         (message (_"\
 Position %d/%d; %d translated, %d fuzzy, %d untranslated, %d obsolete")
                  position total po-translated-counter po-fuzzy-counter
@@ -1467,6 +1468,14 @@ which does not match exactly.")
   "Find the next fuzzy entry, wrapping around if necessary."
   (interactive)
   (po-previous-entry-with-regexp po-fuzzy-regexp t))
+
+(defun k/po-toggle-fuzzy ()
+  "Toggle fuzzy for the current entry."
+  (interactive)
+  (po-find-span-of-entry)
+  (if (eq po-entry-type 'fuzzy)
+      (po-delete-attribute "fuzzy")
+    (po-add-attribute "fuzzy")))
 
 (defun po-unfuzzy ()
   "Remove the fuzzy attribute for the current entry."
@@ -2141,7 +2150,7 @@ Run functions on po-subedit-mode-hook."
           (setq buffer-file-coding-system edit-coding)
           (setq local-abbrev-table po-mode-abbrev-table)
           (erase-buffer)
-          (insert string "<")
+          (insert string)
           (goto-char (point-min))
           (and expand-tabs (setq indent-tabs-mode nil))
           (use-local-map po-subedit-mode-map)
