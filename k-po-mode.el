@@ -453,10 +453,6 @@ The current buffer should be in PO mode, when this function is called."
 ;; page below.  Exceptionally, this variable is local to *all* buffers.
 (defvar-local k-po-mode-flag nil)
 
-;; PO buffers are kept read-only to prevent random modifications.  READ-ONLY
-;; holds the value of the read-only flag before PO mode was entered.
-(defvar-local k-po-read-only nil)
-
 ;; The current entry extends from START-OF-ENTRY to END-OF-ENTRY, it
 ;; includes preceding whitespace and excludes following whitespace.  The
 ;; start of keyword lines are START-OF-MSGID and START-OF-MSGSTR.
@@ -794,65 +790,64 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
 
 (defvar k-po-mode-map
   (let ((k-po-mode-map (make-sparse-keymap)))
-    (suppress-keymap k-po-mode-map)
-    (define-key k-po-mode-map "\C-i"        #'k-po-unfuzzy)
-    (define-key k-po-mode-map "\C-j"        #'k-po-msgid-to-msgstr)
-    (define-key k-po-mode-map "\C-m"        #'k-po-edit-msgstr)
-    (define-key k-po-mode-map " "           #'k-po-auto-select-entry)
-    (define-key k-po-mode-map "#"           #'k-po-edit-comment)
-    (define-key k-po-mode-map ","           #'k-po-tags-search)
-    (define-key k-po-mode-map "."           #'k-po-current-entry)
-    (define-key k-po-mode-map "<"           #'k-po-first-entry)
-    (define-key k-po-mode-map "="           #'k-po-statistics)
-    (define-key k-po-mode-map ">"           #'k-po-last-entry)
-    (define-key k-po-mode-map "a"           #'k-po-cycle-auxiliary)
-    ;; (define-key k-po-mode-map "c"           #'k-po-save-entry)
-    (define-key k-po-mode-map "f"           #'k-po-next-fuzzy-entry)
-    (define-key k-po-mode-map "k"           #'k-po-kill-msgstr)
-    ;; (define-key k-po-mode-map "l"           #'k-po-lookup-lexicons)
-    (define-key k-po-mode-map "m"           #'k-po-push-location)
-    (define-key k-po-mode-map "n"           #'k-po-next-entry)
-    (define-key k-po-mode-map "o"           #'k-po-next-obsolete-entry)
-    (define-key k-po-mode-map "p"           #'k-po-previous-entry)
-    (define-key k-po-mode-map "q"           #'k-po-confirm-and-quit)
-    (define-key k-po-mode-map "r"           #'k-po-pop-location)
-    (define-key k-po-mode-map "s"           #'k-po-cycle-source-reference)
-    (define-key k-po-mode-map "t"           #'k-po-next-translated-entry)
-    (define-key k-po-mode-map "u"           #'k-po-next-untranslated-entry)
-    (define-key k-po-mode-map "w"           #'k-po-kill-ring-save-msgstr)
-    (define-key k-po-mode-map "x"           #'k-po-exchange-location)
-    (define-key k-po-mode-map "y"           #'k-po-yank-msgstr)
-    (define-key k-po-mode-map "A"           #'k-po-consider-as-auxiliary)
-    (define-key k-po-mode-map "E"           #'k-po-edit-out-full)
-    (define-key k-po-mode-map "F"           #'k-po-previous-fuzzy-entry)
-    (define-key k-po-mode-map "K"           #'k-po-kill-comment)
-    ;; (define-key k-po-mode-map "L"           #'k-po-consider-lexicon-file)
-    (define-key k-po-mode-map "M"           #'k-po-send-mail)
-    (define-key k-po-mode-map "O"           #'k-po-previous-obsolete-entry)
-    (define-key k-po-mode-map "T"           #'k-po-previous-translated-entry)
-    (define-key k-po-mode-map "U"           #'k-po-previous-untranslated-entry)
-    (define-key k-po-mode-map "Q"           #'k-po-quit)
-    (define-key k-po-mode-map "S"           #'k-po-consider-source-path)
-    (define-key k-po-mode-map "V"           #'k-po-validate)
-    (define-key k-po-mode-map "W"           #'k-po-kill-ring-save-comment)
-    (define-key k-po-mode-map "Y"           #'k-po-yank-comment)
-    (define-key k-po-mode-map "_"           #'k-po-undo)
-    (define-key k-po-mode-map "\C-_"        #'k-po-undo)
-    (define-key k-po-mode-map "\C-xu"       #'k-po-undo)
-    (define-key k-po-mode-map "0"           #'k-po-other-window)
-    (define-key k-po-mode-map "\177"        #'k-po-fade-out-entry)
-    (define-key k-po-mode-map "\C-c\C-a"    #'k-po-select-auxiliary)
-    (define-key k-po-mode-map "\C-c\C-e"    #'k-po-edit-msgstr-and-ediff)
-    (define-key k-po-mode-map [?\C-c?\C-#]  #'k-po-edit-comment-and-ediff)
-    (define-key k-po-mode-map "\C-c\C-C"    #'k-po-edit-comment-and-ediff)
-    (define-key k-po-mode-map "\M-,"        #'k-po-mark-translatable)
-    (define-key k-po-mode-map "\M-."        #'k-po-select-mark-and-mark)
-    ;; (define-key k-po-mode-map "\M-c"        #'k-po-select-and-save-entry)
-    ;; (define-key k-po-mode-map "\M-l"        #'k-po-edit-lexicon-entry)
-    (define-key k-po-mode-map "\M-s"        #'k-po-select-source-reference)
-    (define-key k-po-mode-map "\M-A"        #'k-po-ignore-as-auxiliary)
-    ;; (define-key k-po-mode-map "\M-L"        #'k-po-ignore-lexicon-file)
-    (define-key k-po-mode-map "\M-S"        #'k-po-ignore-source-path)
+    (define-key k-po-mode-map (kbd "C-c C-i")   #'k-po-unfuzzy)
+    (define-key k-po-mode-map (kbd "C-c C-j")   #'k-po-msgid-to-msgstr)
+    (define-key k-po-mode-map (kbd "C-c C-m")   #'k-po-edit-msgstr)
+    (define-key k-po-mode-map (kbd "C-c CPC")   #'k-po-auto-select-entry)
+    (define-key k-po-mode-map (kbd "C-c #")     #'k-po-edit-comment)
+    (define-key k-po-mode-map (kbd "C-c ,")     #'k-po-tags-search)
+    (define-key k-po-mode-map (kbd "C-c .")     #'k-po-current-entry)
+    (define-key k-po-mode-map (kbd "C-c <")     #'k-po-first-entry)
+    (define-key k-po-mode-map (kbd "C-c =")     #'k-po-statistics)
+    (define-key k-po-mode-map (kbd "C-c >")     #'k-po-last-entry)
+    (define-key k-po-mode-map (kbd "C-c a")     #'k-po-cycle-auxiliary)
+    ;; (define-key k-po-mode-map (kbd "C-c c")  #'k-po-save-entry)
+    (define-key k-po-mode-map (kbd "C-c f")     #'k-po-next-fuzzy-entry)
+    (define-key k-po-mode-map (kbd "C-c k")     #'k-po-kill-msgstr)
+    ;; (define-key k-po-mode-map (kbd "C-c l")  #'k-po-lookup-lexicons)
+    (define-key k-po-mode-map (kbd "C-c m")     #'k-po-push-location)
+    (define-key k-po-mode-map (kbd "C-c n")     #'k-po-next-entry)
+    (define-key k-po-mode-map (kbd "C-c o")     #'k-po-next-obsolete-entry)
+    (define-key k-po-mode-map (kbd "C-c p")     #'k-po-previous-entry)
+    (define-key k-po-mode-map (kbd "C-c q")     #'k-po-confirm-and-quit)
+    (define-key k-po-mode-map (kbd "C-c r")     #'k-po-pop-location)
+    (define-key k-po-mode-map (kbd "C-c s")     #'k-po-cycle-source-reference)
+    (define-key k-po-mode-map (kbd "C-c t")     #'k-po-next-translated-entry)
+    (define-key k-po-mode-map (kbd "C-c u")     #'k-po-next-untranslated-entry)
+    (define-key k-po-mode-map (kbd "C-c w")     #'k-po-kill-ring-save-msgstr)
+    (define-key k-po-mode-map (kbd "C-c x")     #'k-po-exchange-location)
+    (define-key k-po-mode-map (kbd "C-c y")     #'k-po-yank-msgstr)
+    (define-key k-po-mode-map (kbd "C-c A")     #'k-po-consider-as-auxiliary)
+    (define-key k-po-mode-map (kbd "C-c E")     #'k-po-edit-out-full)
+    (define-key k-po-mode-map (kbd "C-c F")     #'k-po-previous-fuzzy-entry)
+    (define-key k-po-mode-map (kbd "C-c K")     #'k-po-kill-comment)
+    ;; (define-key k-po-mode-map (kbd "C-c L")  #'k-po-consider-lexicon-file)
+    (define-key k-po-mode-map (kbd "C-c M")     #'k-po-send-mail)
+    (define-key k-po-mode-map (kbd "C-c O")     #'k-po-previous-obsolete-entry)
+    (define-key k-po-mode-map (kbd "C-c T")     #'k-po-previous-translated-entry)
+    (define-key k-po-mode-map (kbd "C-c U")     #'k-po-previous-untranslated-entry)
+    (define-key k-po-mode-map (kbd "C-c Q")     #'k-po-quit)
+    (define-key k-po-mode-map (kbd "C-c S")     #'k-po-consider-source-path)
+    (define-key k-po-mode-map (kbd "C-c V")     #'k-po-validate)
+    (define-key k-po-mode-map (kbd "C-c W")     #'k-po-kill-ring-save-comment)
+    (define-key k-po-mode-map (kbd "C-c Y")     #'k-po-yank-comment)
+    (define-key k-po-mode-map (kbd "C-c _")     #'k-po-undo)
+    (define-key k-po-mode-map (kbd "C-c C-_")   #'k-po-undo)
+    (define-key k-po-mode-map (kbd "C-c C-x u") #'k-po-undo)
+    (define-key k-po-mode-map (kbd "C-c 0")     #'k-po-other-window)
+    (define-key k-po-mode-map (kbd "C-c DEL")   #'k-po-fade-out-entry)
+    (define-key k-po-mode-map (kbd "C-c C-a")   #'k-po-select-auxiliary)
+    (define-key k-po-mode-map (kbd "C-c C-e")   #'k-po-edit-msgstr-and-ediff)
+    (define-key k-po-mode-map (kbd "C-c C-#")   #'k-po-edit-comment-and-ediff)
+    (define-key k-po-mode-map (kbd "C-c C-C")   #'k-po-edit-comment-and-ediff)
+    (define-key k-po-mode-map (kbd "M-,")       #'k-po-mark-translatable)
+    (define-key k-po-mode-map (kbd "M-.")       #'k-po-select-mark-and-mark)
+    ;; (define-key k-po-mode-map (kbd "M-c")    #'k-po-select-and-save-entry)
+    ;; (define-key k-po-mode-map (kbd "M-l")    #'k-po-edit-lexicon-entry)
+    (define-key k-po-mode-map (kbd "M-s")       #'k-po-select-source-reference)
+    (define-key k-po-mode-map (kbd "M-A")       #'k-po-ignore-as-auxiliary)
+    ;; (define-key k-po-mode-map (kbd "M-L")    #'k-po-ignore-lexicon-file)
+    (define-key k-po-mode-map (kbd "M-S")       #'k-po-ignore-source-path)
     k-po-mode-map)
   "Keymap for PO mode.")
 
@@ -869,8 +864,6 @@ all reachable through \\[customize], in group 'Emacs.Editing.I18n.K-po'."
   (when (fboundp 'easy-menu-define)
     (easy-menu-define k-po-mode-menu k-po-mode-map "" k-po-mode-menu-layout))
   (setq-local font-lock-defaults '(k-po-font-lock-keywords t))
-  (setq-local k-po-read-only buffer-read-only)
-  (setq buffer-read-only t)
 
   (setq k-po-mode-flag t)
 
@@ -896,11 +889,11 @@ all reachable through \\[customize], in group 'Emacs.Editing.I18n.K-po'."
 
 (defvar k-po-subedit-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "\C-c\C-a" #'k-po-subedit-cycle-auxiliary)
-    (define-key map "\C-c\C-c" #'k-po-subedit-exit)
+    (define-key map (kbd "C-c C-a") #'k-po-subedit-cycle-auxiliary)
+    (define-key map (kbd "C-c C-c") #'k-po-subedit-exit)
     (define-key map (kbd "C-c C-'") #'k-po-subedit-exit)
-    (define-key map "\C-c\C-e" #'k-po-subedit-ediff)
-    (define-key map "\C-c\C-k" #'k-po-subedit-abort)
+    (define-key map (kbd "C-c C-e") #'k-po-subedit-ediff)
+    (define-key map (kbd "C-c C-k") #'k-po-subedit-abort)
     map)
   "Keymap while editing a PO mode entry (or the full PO file).")
 
@@ -1037,8 +1030,7 @@ Can be customized with the `k-po-auto-update-file-header' variable."
       (save-excursion
         (save-restriction
           (widen) ; in case of a narrowed view to the buffer
-          (let ((buffer-read-only k-po-read-only)
-                insert-flag end-of-header)
+          (let (insert-flag end-of-header)
             (goto-char (point-min))
             (if (re-search-forward k-po-any-msgstr-block-regexp nil t)
                 (progn
@@ -1080,8 +1072,7 @@ Can be customized with the `k-po-auto-update-file-header' variable."
           (save-excursion
             (goto-char (point-min))
             (if (re-search-forward "^\"PO-Revision-Date:.*" nil t)
-                (let* ((buffer-read-only k-po-read-only)
-                       (time (current-time))
+                (let* ((time (current-time))
                        (seconds (or (car (current-time-zone time)) 0))
                        (minutes (/ (abs seconds) 60))
                        (zone (format "%c%02d%02d"
@@ -1196,34 +1187,32 @@ fuzzy, untranslated, or translated."
 (defun k-po-add-attribute (name)
   "Add attribute NAME to the current entry, unless it is already there."
   (save-excursion
-    (let ((buffer-read-only k-po-read-only))
-      (goto-char k-po-start-of-entry)
-      (if (re-search-forward "\n#, .*" k-po-start-of-msgctxt t)
-          (save-restriction
-            (narrow-to-region (match-beginning 0) (match-end 0))
-            (goto-char (point-min))
-            (if (re-search-forward (concat "\\b" name "\\b") nil t)
-                nil
-              (goto-char (point-max))
-              (insert ", " name)))
-        (skip-chars-forward "\n")
-        (while (eq (following-char) ?#)
-          (forward-line 1))
-        (insert "#, " name "\n")))))
+    (goto-char k-po-start-of-entry)
+    (if (re-search-forward "\n#, .*" k-po-start-of-msgctxt t)
+        (save-restriction
+          (narrow-to-region (match-beginning 0) (match-end 0))
+          (goto-char (point-min))
+          (if (re-search-forward (concat "\\b" name "\\b") nil t)
+              nil
+            (goto-char (point-max))
+            (insert ", " name)))
+      (skip-chars-forward "\n")
+      (while (eq (following-char) ?#)
+        (forward-line 1))
+      (insert "#, " name "\n"))))
 
 (defun k-po-delete-attribute (name)
   "Delete attribute NAME from the current entry, if any."
   (save-excursion
-    (let ((buffer-read-only k-po-read-only))
-      (goto-char k-po-start-of-entry)
-      (if (re-search-forward "\n#, .*" k-po-start-of-msgctxt t)
-          (save-restriction
-            (narrow-to-region (match-beginning 0) (match-end 0))
-            (goto-char (point-min))
-            (if (re-search-forward
-                 (concat "\\(\n#, " name "$\\|, " name "$\\| " name ",\\)")
-                 nil t)
-                (replace-match "" t t)))))))
+    (goto-char k-po-start-of-entry)
+    (if (re-search-forward "\n#, .*" k-po-start-of-msgctxt t)
+        (save-restriction
+          (narrow-to-region (match-beginning 0) (match-end 0))
+          (goto-char (point-min))
+          (if (re-search-forward
+               (concat "\\(\n#, " name "$\\|, " name "$\\| " name ",\\)")
+               nil t)
+              (replace-match "" t t))))))
 
 ;;; Entry positionning.
 
@@ -1654,11 +1643,10 @@ described by FORM is merely identical to the msgid already in place."
       (goto-char k-po-start-of-entry)
       (re-search-forward k-po-any-msgid-regexp k-po-start-of-msgstr-block)
       (and (not (string-equal (match-string-no-properties 0) string))
-           (let ((buffer-read-only k-po-read-only))
-             (replace-match string t t)
-             (goto-char k-po-start-of-msgid)
-             (k-po-find-span-of-entry)
-             t)))))
+           (replace-match string t t)
+           (goto-char k-po-start-of-msgid)
+           (k-po-find-span-of-entry)
+           t))))
 
 (defun k-po-set-msgstr-form (form)
   "Replace the current msgstr or msgstr[], using FORM to get a string.
@@ -1669,19 +1657,18 @@ is properly requoted before the replacement occurs.
 Returns 'nil' if the buffer has not been modified, for if the new msgstr
 described by FORM is merely identical to the msgstr already in place."
   (let ((string (k-po-eval-requoted form
-                                  (k-po-get-msgstr-flavor)
-                                  (eq k-po-entry-type 'obsolete))))
+                                    (k-po-get-msgstr-flavor)
+                                    (eq k-po-entry-type 'obsolete))))
     (save-excursion
       (goto-char k-po-start-of-msgstr-form)
       (re-search-forward k-po-any-msgstr-form-regexp k-po-end-of-msgstr-form)
       (and (not (string-equal (match-string-no-properties 0) string))
-           (let ((buffer-read-only k-po-read-only))
-             (k-po-decrease-type-counter)
-             (replace-match string t t)
-             (goto-char k-po-start-of-msgid)
-             (k-po-find-span-of-entry)
-             (k-po-increase-type-counter)
-             t)))))
+           (k-po-decrease-type-counter)
+           (replace-match string t t)
+           (goto-char k-po-start-of-msgid)
+           (k-po-find-span-of-entry)
+           (k-po-increase-type-counter)
+           t))))
 
 (defun k-po-kill-ring-save-msgstr ()
   "Push the msgstr string from current entry on the kill ring."
@@ -1726,12 +1713,11 @@ or completely delete an obsolete entry, saving its msgstr on the kill ring."
                (save-excursion
                  (save-restriction
                    (narrow-to-region k-po-start-of-entry k-po-end-of-entry)
-                   (let ((buffer-read-only k-po-read-only))
-                     (goto-char (point-min))
-                     (skip-chars-forward "\n")
-                     (while (not (eobp))
-                       (insert "#~ ")
-                       (search-forward "\n")))))
+                   (goto-char (point-min))
+                   (skip-chars-forward "\n")
+                   (while (not (eobp))
+                     (insert "#~ ")
+                     (search-forward "\n"))))
                (k-po-current-entry)
                (k-po-increase-type-counter)))
          (message ""))
@@ -1743,8 +1729,7 @@ or completely delete an obsolete entry, saving its msgstr on the kill ring."
          (k-po-update-mode-line-string)
          ;; TODO: Should save all msgstr forms here, not just one.
          (kill-new (k-po-get-msgstr-form))
-         (let ((buffer-read-only k-po-read-only))
-           (delete-region k-po-start-of-entry k-po-end-of-entry))
+         (delete-region k-po-start-of-entry k-po-end-of-entry)
          (goto-char k-po-start-of-entry)
          (if (re-search-forward k-po-any-msgstr-block-regexp nil t)
              (goto-char (match-beginning 0))
@@ -1799,11 +1784,9 @@ The string is properly recommented before the replacement occurs."
     (goto-char k-po-start-of-entry)
     (if (re-search-forward k-po-comment-regexp k-po-end-of-entry t)
         (if (not (string-equal (match-string-no-properties 0) string))
-            (let ((buffer-read-only k-po-read-only))
-              (replace-match string t t)))
+            (replace-match string t t))
       (skip-chars-forward " \t\n")
-      (let ((buffer-read-only k-po-read-only))
-        (insert string))))
+      (insert string)))
   (k-po-current-entry))
 
 (defun k-po-kill-ring-save-comment ()
@@ -1850,9 +1833,8 @@ given regular expression REGEXP."
 comments) from the current entry."
   (interactive)
   (k-po-find-span-of-entry)
-  (let ((buffer-read-only k-po-read-only))
-    (dolist (region (k-po-previous-untranslated-regions))
-      (delete-region (car region) (cdr region))))
+  (dolist (region (k-po-previous-untranslated-regions))
+    (delete-region (car region) (cdr region)))
   (k-po-redisplay))
 
 (defun k-po-maybe-delete-previous-untranslated ()
@@ -1868,19 +1850,18 @@ comments) from the current entry, if the user gives the permission."
                            (progn
                              (setq overlays
                                    (mapcar (function
-                                             (lambda (region)
-                                               (let ((overlay (k-po-create-overlay)))
-                                                 (k-po-highlight overlay (car region) (cdr region))
-                                                 overlay)))
+                                            (lambda (region)
+                                              (let ((overlay (k-po-create-overlay)))
+                                                (k-po-highlight overlay (car region) (cdr region))
+                                                overlay)))
                                            previous-regions))
                              ;; Scroll, to show the previous-regions.
                              (goto-char (car (car previous-regions)))
                              (prog1 (y-or-n-p "Delete previous msgid comments? ")
-                                    (message "")))
+                               (message "")))
                          (mapc 'k-po-dehighlight overlays)))))
-            (let ((buffer-read-only k-po-read-only))
-              (dolist (region previous-regions)
-                (delete-region (car region) (cdr region))))))))
+            (dolist (region previous-regions)
+              (delete-region (car region) (cdr region)))))))
 
 ;;; Editing management and submode.
 
@@ -1932,7 +1913,6 @@ comments) from the current entry, if the user gives the permission."
       ;; Don't ask the user for confirmation, since he has explicitly asked
       ;; for it.
       (progn
-        (setq buffer-read-only k-po-read-only)
         (fundamental-mode)
         (message "Type 'M-x k-po-mode RET' once done"))))
 
@@ -2000,10 +1980,8 @@ the ediff control panel."
         (save-current-buffer
           (set-buffer (get-buffer-create
                        (generate-new-buffer-name buf1)))
-          (setq buffer-read-only nil)
           (erase-buffer)
-          (insert-buffer-substring oldbuf start-1 end-1)
-          (setq buffer-read-only t))
+          (insert-buffer-substring oldbuf start-1 end-1))
 
         (setq start-2 (point))
         (save-excursion
@@ -2153,8 +2131,7 @@ read `k-po-subedit-ediff' documentation."
   "Normalize old gettext style fields using K&R C multiline string syntax.
 To minibuffer messages sent while normalizing, add the EXPLAIN string."
   (let ((here (point-marker))
-        (counter 0)
-        (buffer-read-only k-po-read-only))
+        (counter 0))
     (goto-char (point-min))
     (message "Normalizing %d, %s" counter explain)
     (while (re-search-forward
@@ -2197,8 +2174,7 @@ To minibuffer messages sent while normalizing, add the EXPLAIN string."
   (k-po-normalize-field nil "pass 3/3")
   ;; The last PO file entry has just been processed.
   (if (not (= k-po-end-of-entry (point-max)))
-      (let ((buffer-read-only k-po-read-only))
-        (kill-region k-po-end-of-entry (point-max))))
+      (kill-region k-po-end-of-entry (point-max)))
   ;; A bizarre format might have fooled the counters, so recompute
   ;; them to make sure their value is dependable.
   (k-po-compute-counters nil))
@@ -2554,15 +2530,14 @@ Disregard some simple strings which are most probably non-translatable."
       (setq line (count-lines (point-min) start))
       (apply k-po-mark-string-function start end keyword nil))
     ;; Add PO file entry.
-    (let ((buffer-read-only k-po-read-only))
-      (goto-char (point-max))
-      (insert "\n" (format "#: %s:%d\n"
-                           (buffer-file-name k-po-string-buffer)
-                           line))
-      (save-excursion
-        (insert (k-po-eval-requoted contents "msgid" nil) "msgstr \"\"\n"))
-      (setq k-po-untranslated-counter (1+ k-po-untranslated-counter))
-      (k-po-update-mode-line-string))
+    (goto-char (point-max))
+    (insert "\n" (format "#: %s:%d\n"
+                         (buffer-file-name k-po-string-buffer)
+                         line))
+    (save-excursion
+      (insert (k-po-eval-requoted contents "msgid" nil) "msgstr \"\"\n"))
+    (setq k-po-untranslated-counter (1+ k-po-untranslated-counter))
+    (k-po-update-mode-line-string)
     (setq k-po-string-contents nil)))
 
 (defun k-po-mark-translatable ()
@@ -2989,8 +2964,7 @@ Leave point after marked string."
 (defun k-po-undo ()
   "Undo the last change to the PO file."
   (interactive)
-  (let ((buffer-read-only k-po-read-only))
-    (undo))
+  (undo)
   (k-po-compute-counters nil))
 
 (defun k-po-statistics ()
