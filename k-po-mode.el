@@ -864,7 +864,7 @@ Special commands:
 \\{k-po-mode-map}
 Turning on PO mode calls the value of the variable 'k-po-mode-hook',
 if that value is non-nil.  Behaviour may be adjusted through some variables,
-all reachable through 'M-x customize', in group 'Emacs.Editing.I18n.Po'."
+all reachable through \\[customize], in group 'Emacs.Editing.I18n.Po'."
   (interactive)
   (kill-all-local-variables)
   (setq major-mode 'k-po-mode
@@ -1431,8 +1431,9 @@ If WRAP is not nil, the search may wrap around the buffer."
 ;; Fuzzy entries.
 
 (defvar k-po-fuzzy-regexp "^#, .*fuzzy"
-  "Regexp matching the string inserted by msgmerge for translations
-which does not match exactly.")
+  "Regexp matching the fuzzy marker.
+It is inserted by msgmerge for translations which does not match
+exactly.")
 
 (defun k-po-next-fuzzy-entry ()
   "Find the next fuzzy entry, wrapping around if necessary."
@@ -1852,12 +1853,12 @@ The string is properly recommented before the replacement occurs."
 
 ;;; Deleting the "previous untranslated" comment.
 
-(defun k-po-previous-untranslated-region-for (rx)
+(defun k-po-previous-untranslated-region-for (regexp)
   "Return the list of previous untranslated regions (at most one) for the
-given regular expression RX."
+given regular expression REGEXP."
   (save-excursion
     (goto-char k-po-start-of-entry)
-    (if (re-search-forward rx k-po-start-of-msgctxt t)
+    (if (re-search-forward regexp k-po-start-of-msgctxt t)
         (list (cons (copy-marker (match-beginning 0))
                     (copy-marker (match-end 0))))
       nil)))
@@ -1990,9 +1991,9 @@ For more info cf. `k-po-subedit-ediff'."
 
 (defun k-po-subedit-ediff ()
   "Edit the subedit buffer using `ediff'.
-`k-po-subedit-ediff' calls `k-po-ediff-buffers-exit-recursive' to edit translation
-variants side by side if they are actually different; if variants are equal just
-delete the first one.
+`k-po-subedit-ediff' calls `k-po-ediff-buffers-exit-recursive' to
+edit translation variants side by side if they are actually
+different; if variants are equal just delete the first one.
 
 `msgcat' is able to produce those variants; every variant is marked with:
 
@@ -2000,8 +2001,9 @@ delete the first one.
 
 Put changes in second buffer.
 
-When done with the `ediff' session press \\[exit-recursive-edit] exit to
-`recursive-edit', or call \\[k-po-ediff-quit] (`Q') in the ediff control panel."
+When done with the `ediff' session press \\[exit-recursive-edit]
+exit to `recursive-edit', or call \\[k-po-ediff-quit] (`Q') in
+the ediff control panel."
   (interactive)
   (let* ((marker-regex "^#-#-#-#-#  \\(.*\\)  #-#-#-#-#\n")
          (buf1 " *k-po-msgstr-1") ; default if first marker is missing
@@ -2531,28 +2533,27 @@ Disregard some simple strings which are most probably non-translatable."
       (if data
           ;; Push the string just found into a work buffer for study.
           (with-temp-buffer
-           (insert (nth 0 data))
-           (goto-char (point-min))
-           ;; Accept if at least three letters in a row.
-           (if (re-search-forward "[A-Za-z][A-Za-z][A-Za-z]" nil t)
-               (setq continue nil)
-             ;; Disregard if single letters or no letters at all.
-             (if (re-search-forward "[A-Za-z][A-Za-z]" nil t)
-                 ;; Here, we have two letters in a row, but never more.
-                 ;; Accept only if more letters than punctuations.
-                 (let ((total (buffer-size)))
-                   (goto-char (point-min))
-                   (while (re-search-forward "[A-Za-z]+" nil t)
-                     (replace-match "" t t))
-                   (if (< (* 2 (buffer-size)) total)
-                       (setq continue nil))))))
+            (insert (nth 0 data))
+            (goto-char (point-min))
+            ;; Accept if at least three letters in a row.
+            (if (re-search-forward "[A-Za-z][A-Za-z][A-Za-z]" nil t)
+                (setq continue nil)
+              ;; Disregard if single letters or no letters at all.
+              (if (re-search-forward "[A-Za-z][A-Za-z]" nil t)
+                  ;; Here, we have two letters in a row, but never more.
+                  ;; Accept only if more letters than punctuations.
+                  (let ((total (buffer-size)))
+                    (goto-char (point-min))
+                    (while (re-search-forward "[A-Za-z]+" nil t)
+                      (replace-match "" t t))
+                    (if (< (* 2 (buffer-size)) total)
+                        (setq continue nil))))))
         ;; No string left in this buffer.
         (setq continue nil)))
     (if data
         ;; Save information for marking functions.
         (let ((buffer (current-buffer)))
-          (save-excursion
-            (set-buffer k-po-current-k-po-buffer)
+          (with-current-buffer k-po-current-k-po-buffer
             (setq k-po-string-contents (nth 0 data)
                   k-po-string-buffer buffer
                   k-po-string-start (nth 1 data)
@@ -3155,101 +3156,97 @@ Team name '%s' unknown.  What is the team code? "
   (interactive)
   (let* ((team-flag (y-or-n-p
                      "\
-Write to your team?  ('n' if writing to the Translation Project robot) "))
+Write to your team (y) or the Translation Project bot (n)? "))
          (address (if team-flag
                       (k-po-guess-team-address)
                     k-po-translation-project-address)))
     (if (not (y-or-n-p "Include current PO file in mail? "))
         (apply k-po-compose-mail-function address
                (read-string "Subject? ") nil)
-      (if (buffer-modified-p)
-          (error "The file is not even saved, you did not validate it."))
-      (if (and (y-or-n-p "You validated ('V') this file, didn't you? ")
-               (or (zerop k-po-untranslated-counter)
-                   (y-or-n-p
-                    (format "%d entries are untranslated, include anyway? "
-                            k-po-untranslated-counter)))
-               (or (zerop k-po-fuzzy-counter)
-                   (y-or-n-p
-                    (format "%d entries are still fuzzy, include anyway? "
-                            k-po-fuzzy-counter)))
-               (or (zerop k-po-obsolete-counter)
-                   (y-or-n-p
-                    (format "%d entries are obsolete, include anyway? "
-                            k-po-obsolete-counter))))
-          (let ((buffer (current-buffer))
-                (name (k-po-guess-archive-name))
-                (transient-mark-mode nil)
-                (coding-system-for-read buffer-file-coding-system)
-                (coding-system-for-write buffer-file-coding-system))
-            (apply k-po-compose-mail-function address
-                   (if team-flag
-                       (read-string "Subject? ")
-                     (format "%s %s" k-po-translation-project-mail-label name))
-                   nil)
-            (goto-char (point-min))
-            (re-search-forward
-             (concat "^" (regexp-quote mail-header-separator) "\n"))
-            (save-excursion
-              (save-restriction
-                (narrow-to-region (point) (point))
-                (insert-buffer-substring buffer)
-                (shell-command-on-region
-                 (point-min) (point-max)
-                 (concat k-po-gzip-uuencode-command " " name ".gz") t t)))))))
+      (when (buffer-modified-p)
+        (error "The file has not been saved, and it has not been validated"))
+      (when (and (y-or-n-p "Have you validated ('V') this file? ")
+                 (or (zerop k-po-untranslated-counter)
+                     (y-or-n-p
+                      (format "%d entries are untranslated, include anyway? "
+                              k-po-untranslated-counter)))
+                 (or (zerop k-po-fuzzy-counter)
+                     (y-or-n-p
+                      (format "%d entries are still fuzzy, include anyway? "
+                              k-po-fuzzy-counter)))
+                 (or (zerop k-po-obsolete-counter)
+                     (y-or-n-p
+                      (format "%d entries are obsolete, include anyway? "
+                              k-po-obsolete-counter))))
+        (let ((buffer (current-buffer))
+              (name (k-po-guess-archive-name))
+              (transient-mark-mode nil)
+              (coding-system-for-read buffer-file-coding-system)
+              (coding-system-for-write buffer-file-coding-system))
+          (apply k-po-compose-mail-function address
+                 (if team-flag
+                     (read-string "Subject: ")
+                   (format "%s %s" k-po-translation-project-mail-label name))
+                 nil)
+          (goto-char (point-min))
+          (re-search-forward
+           (concat "^" (regexp-quote mail-header-separator) "\n"))
+          (save-excursion
+            (save-restriction
+              (narrow-to-region (point) (point))
+              (insert-buffer-substring buffer)
+              (shell-command-on-region
+               (point-min) (point-max)
+               (concat k-po-gzip-uuencode-command " " name ".gz") t t)))))))
   (message ""))
 
 (defun k-po-confirm-and-quit ()
   "Confirm if quit should be attempted and then, do it.
 This is a failsafe.  Confirmation is asked if only the real quit would not."
   (interactive)
-  (if (k-po-check-all-pending-edits)
-      (progn
-        (if (or (buffer-modified-p)
-                (> k-po-untranslated-counter 0)
-                (> k-po-fuzzy-counter 0)
-                (> k-po-obsolete-counter 0)
-                (y-or-n-p "Really quit editing this PO file? "))
-            (k-po-quit))
-        (message ""))))
+  (when (k-po-check-all-pending-edits)
+    (when (or (buffer-modified-p)
+              (> k-po-untranslated-counter 0)
+              (> k-po-fuzzy-counter 0)
+              (> k-po-obsolete-counter 0)
+              (y-or-n-p "Really quit editing this PO file? "))
+      (k-po-quit))
+    (message "")))
 
 (defun k-po-quit ()
   "Save the PO file and kill buffer.
 However, offer validation if appropriate and ask confirmation if untranslated
 strings remain."
   (interactive)
-  (if (k-po-check-all-pending-edits)
-      (let ((quit t))
-        ;; Offer validation of newly modified entries.
-        (if (and (buffer-modified-p)
+  (when (k-po-check-all-pending-edits)
+    (let ((quit t))
+      ;; Offer validation of newly modified entries.
+      (when (and (buffer-modified-p)
                  (not (y-or-n-p
                        "File was modified; skip validation step? ")))
-            (progn
-              (message "")
-              (k-po-validate)
-              ;; If we knew that the validation was all successful, we should
-              ;; just quit.  But since we do not know yet, as the validation
-              ;; might be asynchronous with PO mode commands, the safest is to
-              ;; stay within PO mode, even if this implies that another
-              ;; 'k-po-quit' command will be later required to exit for true.
-              (setq quit nil)))
-        ;; Offer to work on untranslated entries.
-        (if (and quit
+        (message "")
+        (k-po-validate)
+        ;; If we knew that the validation was all successful, we should
+        ;; just quit.  But since we do not know yet, as the validation
+        ;; might be asynchronous with PO mode commands, the safest is to
+        ;; stay within PO mode, even if this implies that another
+        ;; 'k-po-quit' command will be later required to exit for true.
+        (setq quit nil))
+      ;; Offer to work on untranslated entries.
+      (when (and quit
                  (or (> k-po-untranslated-counter 0)
                      (> k-po-fuzzy-counter 0)
                      (> k-po-obsolete-counter 0))
                  (not (y-or-n-p
                        "Unprocessed entries remain; quit anyway? ")))
-            (progn
-              (setq quit nil)
-              (k-po-auto-select-entry)))
-        ;; Clear message area.
-        (message "")
-        ;; Or else, kill buffers and quit for true.
-        (if quit
-            (progn
-              (save-buffer)
-              (kill-buffer (current-buffer)))))))
+        (setq quit nil)
+        (k-po-auto-select-entry))
+      ;; Clear message area.
+      (message "")
+      ;; Or else, kill buffers and quit for true.
+      (when quit
+        (save-buffer)
+        (kill-buffer (current-buffer))))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.po[tx]?\\'\\|\\.po\\." . k-po-mode))
