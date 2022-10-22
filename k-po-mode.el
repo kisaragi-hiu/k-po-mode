@@ -2,9 +2,9 @@
 
 ;; Author: Kisaragi Hiu
 ;; Version: 0.1
-;; Package-Requires: (dependencies)
+;; Package-Requires: ((emacs "24.3"))
 ;; Homepage: homepage
-;; Keywords: keywords
+;; Keywords: po languages
 
 
 ;; This file is not part of GNU Emacs
@@ -793,7 +793,7 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
     (define-key k-po-mode-map (kbd "C-c C-i")   #'k-po-unfuzzy)
     (define-key k-po-mode-map (kbd "C-c C-j")   #'k-po-msgid-to-msgstr)
     (define-key k-po-mode-map (kbd "C-c C-m")   #'k-po-edit-msgstr)
-    (define-key k-po-mode-map (kbd "C-c CPC")   #'k-po-auto-select-entry)
+    (define-key k-po-mode-map (kbd "C-c SPC")   #'k-po-auto-select-entry)
     (define-key k-po-mode-map (kbd "C-c #")     #'k-po-edit-comment)
     (define-key k-po-mode-map (kbd "C-c ,")     #'k-po-tags-search)
     (define-key k-po-mode-map (kbd "C-c .")     #'k-po-current-entry)
@@ -1410,7 +1410,7 @@ exactly.")
   (interactive)
   (k-po-previous-entry-with-regexp k-po-fuzzy-regexp t))
 
-(defun k/k-po-toggle-fuzzy ()
+(defun k-po-toggle-fuzzy ()
   "Toggle fuzzy for the current entry."
   (interactive)
   (k-po-find-span-of-entry)
@@ -2114,11 +2114,11 @@ read `k-po-subedit-ediff' documentation."
   (interactive)
   (k-po-find-span-of-entry)
   (k-po-edit-string (if (and k-po-auto-edit-with-msgid
-                           (eq k-po-entry-type 'untranslated))
-                      (k-po-get-msgid))
-                    (k-po-get-msgstr-form)
-                  'msgstr
-                  t))
+                             (eq k-po-entry-type 'untranslated))
+                        (k-po-get-msgid)
+                      (k-po-get-msgstr-form))
+                    'msgstr
+                    t))
 
 (defun k-po-edit-msgstr-and-ediff ()
   "Use `ediff' to edit the current msgstr.
@@ -3001,8 +3001,8 @@ Leave point after marked string."
               (concat (file-name-sans-extension buffer-file-name) ".mo")
             dev-null))
          (compilation-buffer-name-function
-          (function (lambda (mode-name)
-                      (concat "*" mode-name " validation*"))))
+          (lambda (mode)
+            (concat "*" mode " validation*")))
          (compile-command (concat k-po-msgfmt-program
                                   " --statistics -c -v -o "
                                   (shell-quote-argument output) " "
