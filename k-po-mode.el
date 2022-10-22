@@ -116,13 +116,6 @@ to this email address."
   :type 'string
   :group 'k-po)
 
-(defcustom k-po-highlighting t
-  "*Highlight text whenever appropriate, when non-nil.
-However, on older Emacses, a yet unexplained highlighting bug causes files
-to get mangled."
-  :type 'boolean
-  :group 'k-po)
-
 (defcustom k-po-highlight-face 'highlight
   "*The face used for PO mode highlighting.  For Emacses with overlays.
 Possible values are 'highlight', 'modeline', 'secondary-selection',
@@ -2111,7 +2104,7 @@ Run functions on k-po-subedit-mode-hook."
               (edit-coding buffer-file-coding-system)
               (buffer (current-buffer))
               overlay slot)
-          (if (and (eq type 'msgstr) k-po-highlighting)
+          (if (and (eq type 'msgstr))
               ;; ;; Try showing all of msgid in the upper window while editing.
               ;; (goto-char (1- k-po-start-of-msgstr-block))
               ;; (recenter -1)
@@ -2294,15 +2287,13 @@ Otherwise, move nothing, and just return 'nil'."
           (progn
             (switch-to-buffer buffer)
             (k-po-find-span-of-entry)
-            (if k-po-highlighting
-                (progn
-                  (goto-char k-po-start-of-entry)
-                  (re-search-forward k-po-any-msgstr-block-regexp nil t)
-                  (let ((end (1- (match-end 0))))
-                    (goto-char (match-beginning 0))
-                    (re-search-forward "msgstr +" nil t)
-                    ;; Just "borrow" the marking overlay.
-                    (k-po-highlight k-po-marking-overlay (point) end))))
+            (goto-char k-po-start-of-entry)
+            (re-search-forward k-po-any-msgstr-block-regexp nil t)
+            (let ((end (1- (match-end 0))))
+              (goto-char (match-beginning 0))
+              (re-search-forward "msgstr +" nil t)
+              ;; Just "borrow" the marking overlay.
+              (k-po-highlight k-po-marking-overlay (point) end))
             (goto-char k-po-start-of-msgid))
         (goto-char start)
         (k-po-find-span-of-entry)
@@ -2489,8 +2480,7 @@ With prefix argument, restart search at first file."
   (interactive "P")
   (require 'etags)
   ;; Ensure there is no highlighting, in case the search fails.
-  (if k-po-highlighting
-      (k-po-dehighlight k-po-marking-overlay))
+  (k-po-dehighlight k-po-marking-overlay)
   (setq k-po-string-contents nil)
   ;; Search for a string which might later be marked for translation.
   (let ((k-po-current-k-po-buffer (current-buffer))
@@ -2521,8 +2511,7 @@ With prefix argument, restart search at first file."
           (recenter -1))
         (select-window window)
         ;; Highlight the string as found.
-        (and k-po-highlighting
-             (k-po-highlight k-po-marking-overlay start end buffer)))))
+        (k-po-highlight k-po-marking-overlay start end buffer))))
 
 (defun k-po-tags-loop-scan ()
   "Decide if the current buffer is still interesting for PO mode strings."
@@ -2576,8 +2565,8 @@ Disregard some simple strings which are most probably non-translatable."
 (defun k-po-mark-found-string (keyword)
   "Mark last found string in program sources as translatable, using KEYWORD."
   (if (not k-po-string-contents)
-    (error "No such string"))
-  (and k-po-highlighting (k-po-dehighlight k-po-marking-overlay))
+      (error "No such string"))
+  (k-po-dehighlight k-po-marking-overlay)
   (let ((contents k-po-string-contents)
         (buffer k-po-string-buffer)
         (start k-po-string-start)
