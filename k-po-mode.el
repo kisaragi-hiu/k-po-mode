@@ -32,27 +32,24 @@
 
 ;;; Code:
 
-(defconst k-po-mode-version-string "2.27kisaragi" "\
-Version number of this version of k-po-mode.el.")
-
 ;;; Emacs portability matters - part I.
 ;;; Here is the minimum for customization to work.  See part II.
 
 ;;; Customisation.
 
-(defgroup po nil
+(defgroup k-po nil
   "Major mode for editing PO files."
   :group 'i18n)
 
 (defcustom k-po-auto-edit-with-msgid nil
   "*Automatically use msgid when editing untranslated entries."
   :type 'boolean
-  :group 'po)
+  :group 'k-po)
 
 (defcustom k-po-auto-fuzzy-on-edit nil
   "*Automatically mark entries fuzzy when being edited."
   :type 'boolean
-  :group 'po)
+  :group 'k-po)
 
 (defcustom k-po-auto-delete-previous-msgid t
   "*Automatically delete previous msgid (marked #|) when editing entry.
@@ -60,31 +57,31 @@ Value is nil, t, or ask."
   :type '(choice (const nil)
                  (const t)
                  (const ask))
-  :group 'po)
+  :group 'k-po)
 
 (defcustom k-po-auto-select-on-unfuzzy nil
   "*Automatically select some new entry while making an entry not fuzzy."
   :type 'boolean
-  :group 'po)
+  :group 'k-po)
 
 (defcustom k-po-keep-mo-file nil
   "*Set whether MO file should be kept or discarded after validation."
   :type 'boolean
-  :group 'po)
+  :group 'k-po)
 
 (defcustom k-po-auto-update-file-header 'ask
   "*Automatically revise headers.  Value is nil, t, or ask."
   :type '(choice (const nil)
                  (const t)
                  (const ask))
-  :group 'po)
+  :group 'k-po)
 
 (defcustom k-po-auto-replace-revision-date t
   "*Automatically revise date in headers.  Value is nil, t, or ask."
   :type '(choice (const nil)
                  (const t)
                  (const ask))
-  :group 'po)
+  :group 'k-po)
 
 (defcustom k-po-default-file-header "\
 # SOME DESCRIPTIVE TITLE.
@@ -104,7 +101,7 @@ msgstr \"\"
 "
   "*Default PO file header."
   :type 'string
-  :group 'po)
+  :group 'k-po)
 
 (defcustom k-po-translation-project-address
   "robot@translationproject.org"
@@ -112,19 +109,19 @@ msgstr \"\"
 Typing \\[k-po-send-mail] (normally bound to `M') the user will send the PO file
 to this email address."
   :type 'string
-  :group 'po)
+  :group 'k-po)
 
 (defcustom k-po-translation-project-mail-label "TP-Robot"
   "*Subject label when sending the PO file to `k-po-translation-project-address'."
   :type 'string
-  :group 'po)
+  :group 'k-po)
 
 (defcustom k-po-highlighting t
   "*Highlight text whenever appropriate, when non-nil.
 However, on older Emacses, a yet unexplained highlighting bug causes files
 to get mangled."
   :type 'boolean
-  :group 'po)
+  :group 'k-po)
 
 (defcustom k-po-highlight-face 'highlight
   "*The face used for PO mode highlighting.  For Emacses with overlays.
@@ -134,7 +131,7 @@ This variable can be set by the user to whatever face they desire.
 It's most convenient if the cursor color and highlight color are
 slightly different."
   :type 'face
-  :group 'po)
+  :group 'k-po)
 
 (defcustom k-po-team-name-to-code
   ;; All possible languages, a complete ISO 639 list, the inverse of
@@ -416,14 +413,14 @@ slightly different."
 This is used for generating a submission file name for the 'M' command.
 If a string instead of an alist, it is a team code to use unconditionnally."
   :type 'sexp
-  :group 'po)
+  :group 'k-po)
 
 (defcustom k-po-gzip-uuencode-command "gzip -9 | uuencode -m"
   "*The filter to use for preparing a mail invoice of the PO file.
 Normally \"gzip -9 | uuencode -m\", remove the -9 for lesser compression,
 or remove the -m if you are not using the GNU version of 'uuencode'."
   :type 'string
-  :group 'po)
+  :group 'k-po)
 
 (defvar k-po-subedit-mode-syntax-table
   (copy-syntax-table text-mode-syntax-table)
@@ -535,21 +532,16 @@ The current buffer should be in PO mode, when this function is called."
 
 ;;; PO mode variables and constants (usually not to customize).
 
-(defun k-po-mode-version ()
-  "Show Emacs PO mode version."
-  (interactive)
-  (message "Emacs PO mode, version %s" k-po-mode-version-string))
-
 (defconst k-po-help-display-string
   "\
 PO Mode Summary           Next Previous            Miscellaneous
 *: Later, /: Docum        n    p    Any type       .     Redisplay
-                          t    T    Translated     /v    Version info
+                          t    T    Translated
 Moving around             f    F    Fuzzy          ?, h  This help
 <    First if any         o    O    Obsolete       =     Current index
 >    Last if any          u    U    Untranslated   0     Other window
 /SPC Auto select                                   V     Validate
-                        Msgstr Comments            M     Mail officially
+                          Msgstr Comments          M     Mail officially
 Modifying entries         RET  #    Call editor    _     Undo
 TAB   Remove fuzzy mark   k    K    Kill to        E     Edit out full
 DEL   Fuzzy or fade out   w    W    Copy to        Q     Forceful quit
@@ -681,10 +673,6 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
      ["Mark preferred" k-po-mark-translatable t]
      ["Mark with keyword" k-po-select-mark-and-mark t]
      "---"
-     ["Version info" k-po-mode-version
-      :help "Display version number of PO mode"]
-     ["Help page" k-po-help
-      :help "Show the PO mode help screen"]
      ["Validate" k-po-validate
       :help "Check validity of current translation file using `msgfmt'"]
      ["Mail officially" k-po-send-mail
@@ -816,67 +804,64 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
   ;; Use (make-keymap) because (make-sparse-keymap) does not work on Demacs.
   (let ((k-po-mode-map (make-keymap)))
     (suppress-keymap k-po-mode-map)
-    (define-key k-po-mode-map "\C-i" 'k-po-unfuzzy)
-    (define-key k-po-mode-map "\C-j" 'k-po-msgid-to-msgstr)
-    (define-key k-po-mode-map "\C-m" 'k-po-edit-msgstr)
-    (define-key k-po-mode-map " " 'k-po-auto-select-entry)
-    (define-key k-po-mode-map "?" 'k-po-help)
-    (define-key k-po-mode-map "#" 'k-po-edit-comment)
-    (define-key k-po-mode-map "," 'k-po-tags-search)
-    (define-key k-po-mode-map "." 'k-po-current-entry)
-    (define-key k-po-mode-map "<" 'k-po-first-entry)
-    (define-key k-po-mode-map "=" 'k-po-statistics)
-    (define-key k-po-mode-map ">" 'k-po-last-entry)
-    (define-key k-po-mode-map "a" 'k-po-cycle-auxiliary)
-;;;;  (define-key k-po-mode-map "c" 'k-po-save-entry)
-    (define-key k-po-mode-map "f" 'k-po-next-fuzzy-entry)
-    (define-key k-po-mode-map "h" 'k-po-help)
-    (define-key k-po-mode-map "k" 'k-po-kill-msgstr)
-;;;;  (define-key k-po-mode-map "l" 'k-po-lookup-lexicons)
-    (define-key k-po-mode-map "m" 'k-po-push-location)
-    (define-key k-po-mode-map "n" 'k-po-next-entry)
-    (define-key k-po-mode-map "o" 'k-po-next-obsolete-entry)
-    (define-key k-po-mode-map "p" 'k-po-previous-entry)
-    (define-key k-po-mode-map "q" 'k-po-confirm-and-quit)
-    (define-key k-po-mode-map "r" 'k-po-pop-location)
-    (define-key k-po-mode-map "s" 'k-po-cycle-source-reference)
-    (define-key k-po-mode-map "t" 'k-po-next-translated-entry)
-    (define-key k-po-mode-map "u" 'k-po-next-untranslated-entry)
-    (define-key k-po-mode-map "v" 'k-po-mode-version)
-    (define-key k-po-mode-map "w" 'k-po-kill-ring-save-msgstr)
-    (define-key k-po-mode-map "x" 'k-po-exchange-location)
-    (define-key k-po-mode-map "y" 'k-po-yank-msgstr)
-    (define-key k-po-mode-map "A" 'k-po-consider-as-auxiliary)
-    (define-key k-po-mode-map "E" 'k-po-edit-out-full)
-    (define-key k-po-mode-map "F" 'k-po-previous-fuzzy-entry)
-    (define-key k-po-mode-map "K" 'k-po-kill-comment)
-;;;;  (define-key k-po-mode-map "L" 'k-po-consider-lexicon-file)
-    (define-key k-po-mode-map "M" 'k-po-send-mail)
-    (define-key k-po-mode-map "O" 'k-po-previous-obsolete-entry)
-    (define-key k-po-mode-map "T" 'k-po-previous-translated-entry)
-    (define-key k-po-mode-map "U" 'k-po-previous-untranslated-entry)
-    (define-key k-po-mode-map "Q" 'k-po-quit)
-    (define-key k-po-mode-map "S" 'k-po-consider-source-path)
-    (define-key k-po-mode-map "V" 'k-po-validate)
-    (define-key k-po-mode-map "W" 'k-po-kill-ring-save-comment)
-    (define-key k-po-mode-map "Y" 'k-po-yank-comment)
-    (define-key k-po-mode-map "_" 'k-po-undo)
-    (define-key k-po-mode-map "\C-_" 'k-po-undo)
-    (define-key k-po-mode-map "\C-xu" 'k-po-undo)
-    (define-key k-po-mode-map "0" 'k-po-other-window)
-    (define-key k-po-mode-map "\177" 'k-po-fade-out-entry)
-    (define-key k-po-mode-map "\C-c\C-a" 'k-po-select-auxiliary)
-    (define-key k-po-mode-map "\C-c\C-e" 'k-po-edit-msgstr-and-ediff)
-    (define-key k-po-mode-map [?\C-c?\C-#] 'k-po-edit-comment-and-ediff)
-    (define-key k-po-mode-map "\C-c\C-C" 'k-po-edit-comment-and-ediff)
-    (define-key k-po-mode-map "\M-," 'k-po-mark-translatable)
-    (define-key k-po-mode-map "\M-." 'k-po-select-mark-and-mark)
-;;;;  (define-key k-po-mode-map "\M-c" 'k-po-select-and-save-entry)
-;;;;  (define-key k-po-mode-map "\M-l" 'k-po-edit-lexicon-entry)
-    (define-key k-po-mode-map "\M-s" 'k-po-select-source-reference)
-    (define-key k-po-mode-map "\M-A" 'k-po-ignore-as-auxiliary)
-;;;;  (define-key k-po-mode-map "\M-L" 'k-po-ignore-lexicon-file)
-    (define-key k-po-mode-map "\M-S" 'k-po-ignore-source-path)
+    (define-key k-po-mode-map "\C-i"        #'k-po-unfuzzy)
+    (define-key k-po-mode-map "\C-j"        #'k-po-msgid-to-msgstr)
+    (define-key k-po-mode-map "\C-m"        #'k-po-edit-msgstr)
+    (define-key k-po-mode-map " "           #'k-po-auto-select-entry)
+    (define-key k-po-mode-map "#"           #'k-po-edit-comment)
+    (define-key k-po-mode-map ","           #'k-po-tags-search)
+    (define-key k-po-mode-map "."           #'k-po-current-entry)
+    (define-key k-po-mode-map "<"           #'k-po-first-entry)
+    (define-key k-po-mode-map "="           #'k-po-statistics)
+    (define-key k-po-mode-map ">"           #'k-po-last-entry)
+    (define-key k-po-mode-map "a"           #'k-po-cycle-auxiliary)
+    ;; (define-key k-po-mode-map "c"           #'k-po-save-entry)
+    (define-key k-po-mode-map "f"           #'k-po-next-fuzzy-entry)
+    (define-key k-po-mode-map "k"           #'k-po-kill-msgstr)
+    ;; (define-key k-po-mode-map "l"           #'k-po-lookup-lexicons)
+    (define-key k-po-mode-map "m"           #'k-po-push-location)
+    (define-key k-po-mode-map "n"           #'k-po-next-entry)
+    (define-key k-po-mode-map "o"           #'k-po-next-obsolete-entry)
+    (define-key k-po-mode-map "p"           #'k-po-previous-entry)
+    (define-key k-po-mode-map "q"           #'k-po-confirm-and-quit)
+    (define-key k-po-mode-map "r"           #'k-po-pop-location)
+    (define-key k-po-mode-map "s"           #'k-po-cycle-source-reference)
+    (define-key k-po-mode-map "t"           #'k-po-next-translated-entry)
+    (define-key k-po-mode-map "u"           #'k-po-next-untranslated-entry)
+    (define-key k-po-mode-map "w"           #'k-po-kill-ring-save-msgstr)
+    (define-key k-po-mode-map "x"           #'k-po-exchange-location)
+    (define-key k-po-mode-map "y"           #'k-po-yank-msgstr)
+    (define-key k-po-mode-map "A"           #'k-po-consider-as-auxiliary)
+    (define-key k-po-mode-map "E"           #'k-po-edit-out-full)
+    (define-key k-po-mode-map "F"           #'k-po-previous-fuzzy-entry)
+    (define-key k-po-mode-map "K"           #'k-po-kill-comment)
+    ;; (define-key k-po-mode-map "L"           #'k-po-consider-lexicon-file)
+    (define-key k-po-mode-map "M"           #'k-po-send-mail)
+    (define-key k-po-mode-map "O"           #'k-po-previous-obsolete-entry)
+    (define-key k-po-mode-map "T"           #'k-po-previous-translated-entry)
+    (define-key k-po-mode-map "U"           #'k-po-previous-untranslated-entry)
+    (define-key k-po-mode-map "Q"           #'k-po-quit)
+    (define-key k-po-mode-map "S"           #'k-po-consider-source-path)
+    (define-key k-po-mode-map "V"           #'k-po-validate)
+    (define-key k-po-mode-map "W"           #'k-po-kill-ring-save-comment)
+    (define-key k-po-mode-map "Y"           #'k-po-yank-comment)
+    (define-key k-po-mode-map "_"           #'k-po-undo)
+    (define-key k-po-mode-map "\C-_"        #'k-po-undo)
+    (define-key k-po-mode-map "\C-xu"       #'k-po-undo)
+    (define-key k-po-mode-map "0"           #'k-po-other-window)
+    (define-key k-po-mode-map "\177"        #'k-po-fade-out-entry)
+    (define-key k-po-mode-map "\C-c\C-a"    #'k-po-select-auxiliary)
+    (define-key k-po-mode-map "\C-c\C-e"    #'k-po-edit-msgstr-and-ediff)
+    (define-key k-po-mode-map [?\C-c?\C-#]  #'k-po-edit-comment-and-ediff)
+    (define-key k-po-mode-map "\C-c\C-C"    #'k-po-edit-comment-and-ediff)
+    (define-key k-po-mode-map "\M-,"        #'k-po-mark-translatable)
+    (define-key k-po-mode-map "\M-."        #'k-po-select-mark-and-mark)
+    ;; (define-key k-po-mode-map "\M-c"        #'k-po-select-and-save-entry)
+    ;; (define-key k-po-mode-map "\M-l"        #'k-po-edit-lexicon-entry)
+    (define-key k-po-mode-map "\M-s"        #'k-po-select-source-reference)
+    (define-key k-po-mode-map "\M-A"        #'k-po-ignore-as-auxiliary)
+    ;; (define-key k-po-mode-map "\M-L"        #'k-po-ignore-lexicon-file)
+    (define-key k-po-mode-map "\M-S"        #'k-po-ignore-source-path)
     k-po-mode-map)
   "Keymap for PO mode.")
 
@@ -3036,18 +3021,6 @@ Leave point after marked string."
              (insert keyword "(")))))
 
 ;;; Miscellaneous features.
-
-(defun k-po-help ()
-  "Provide an help window for PO mode."
-  (interactive)
-  (with-temp-buffer
-   (insert k-po-help-display-string)
-   (goto-char (point-min))
-   (save-window-excursion
-     (switch-to-buffer (current-buffer))
-     (delete-other-windows)
-     (message "Type any character to continue")
-     (read-event))))
 
 (defun k-po-undo ()
   "Undo the last change to the PO file."
