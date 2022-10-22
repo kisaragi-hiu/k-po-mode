@@ -1556,17 +1556,18 @@ Surrounding quotes are already excluded by the position of START and END."
                 (insert value)))))
    (buffer-string)))
 
-(defun k-po-eval-requoted (form prefix obsolete)
-  "Eval FORM, which inserts a string, and return the string fully requoted.
-If PREFIX, precede the result with its contents.  If OBSOLETE, comment all
-generated lines in the returned string.  Evaluating FORM should insert the
-wanted string in the buffer which is current at the time of evaluation.
-If FORM is itself a string, then this string is used for insertion."
+(defun k-po-call-requoted (func prefix obsolete)
+  "Call FUNC, which inserts a string, and return the string fully requoted.
+If PREFIX, precede the result with its contents.
+If OBSOLETE, comment all generated lines in the returned string.
+FUNC should insert the wanted string in the buffer which is
+current at the time of evaluation. If FUNC is itself a string,
+then this string inserted."
   (with-temp-buffer
-    (if (stringp form)
-        (insert form)
+    (if (stringp func)
+        (insert func)
       (push-mark)
-      (eval form))
+      (funcall func))
     (goto-char (point-min))
     (let ((multi-line (re-search-forward "[^\n]\n+[^\n]" nil t)))
       (goto-char (point-min))
@@ -1599,21 +1600,18 @@ If FORM is itself a string, then this string is used for insertion."
 
 (defun k-po-get-msgid ()
   "Extract and return the unquoted msgid string."
-  (let ((string (k-po-extract-unquoted (current-buffer)
-                                     k-po-start-of-msgid
-                                     (or k-po-start-of-msgid_plural
-                                         k-po-start-of-msgstr-block))))
-    string))
+  (k-po-extract-unquoted (current-buffer)
+                         k-po-start-of-msgid
+                         (or k-po-start-of-msgid_plural
+                             k-po-start-of-msgstr-block)))
 
 (defun k-po-get-msgid_plural ()
   "Extract and return the unquoted msgid_plural string.
 Return nil if it is not present."
-  (if k-po-start-of-msgid_plural
-      (let ((string (k-po-extract-unquoted (current-buffer)
-                                         k-po-start-of-msgid_plural
-                                         k-po-start-of-msgstr-block)))
-        string)
-    nil))
+  (when k-po-start-of-msgid_plural
+    (k-po-extract-unquoted (current-buffer)
+                           k-po-start-of-msgid_plural
+                           k-po-start-of-msgstr-block)))
 
 (defun k-po-get-msgstr-flavor ()
   "Helper function to detect msgstr and msgstr[] variants.
@@ -1630,15 +1628,16 @@ Returns one of \"msgstr\" or \"msgstr[i]\" for some i."
                                      k-po-end-of-msgstr-form)))
     string))
 
-(defun k-po-set-msgid (form)
-  "Replace the current msgid, using FORM to get a string.
-Evaluating FORM should insert the wanted string in the current buffer.  If
-FORM is itself a string, then this string is used for insertion.  The string
-is properly requoted before the replacement occurs.
+(defun k-po-set-msgid (func)
+  "Replace the current msgid, using FUNC to get a string.
+Calling FUNC should insert the wanted string in the current
+buffer. If FUNC is itself a string, then this string is used for
+insertion. The string is properly requoted before the replacement
+occurs.
 
-Returns 'nil' if the buffer has not been modified, for if the new msgid
-described by FORM is merely identical to the msgid already in place."
-  (let ((string (k-po-eval-requoted form "msgid" (eq k-po-entry-type 'obsolete))))
+Return nil if the buffer has not been modified, for if the new msgid
+described by CALL is merely identical to the msgid already in place."
+  (let ((string (k-po-call-requoted func "msgid" (eq k-po-entry-type 'obsolete))))
     (save-excursion
       (goto-char k-po-start-of-entry)
       (re-search-forward k-po-any-msgid-regexp k-po-start-of-msgstr-block)
@@ -1648,15 +1647,16 @@ described by FORM is merely identical to the msgid already in place."
            (k-po-find-span-of-entry)
            t))))
 
-(defun k-po-set-msgstr-form (form)
-  "Replace the current msgstr or msgstr[], using FORM to get a string.
-Evaluating FORM should insert the wanted string in the current buffer.  If
-FORM is itself a string, then this string is used for insertion.  The string
-is properly requoted before the replacement occurs.
+(defun k-po-set-msgstr-form (func)
+  "Replace the current msgstr or msgstr[], using FUNC to get a string.
+Calling FUNC should insert the wanted string in the current
+buffer. If FUNC is itself a string, then this string is used for
+insertion. The string is properly requoted before the replacement
+occurs.
 
-Returns 'nil' if the buffer has not been modified, for if the new msgstr
+Return nil if the buffer has not been modified, for if the new msgstr
 described by FORM is merely identical to the msgstr already in place."
-  (let ((string (k-po-eval-requoted form
+  (let ((string (k-po-call-requoted func
                                     (k-po-get-msgstr-flavor)
                                     (eq k-po-entry-type 'obsolete))))
     (save-excursion
@@ -1682,15 +1682,19 @@ described by FORM is merely identical to the msgstr already in place."
   "Empty the msgstr string from current entry, pushing it on the kill ring."
   (interactive)
   (k-po-kill-ring-save-msgstr)
-  (if (k-po-set-msgstr-form "")
-      (k-po-maybe-delete-previous-untranslated)))
+  (when (k-po-set-msgstr-form "")
+    (k-po-maybe-delete-previous-untranslated)))
 
 (defun k-po-yank-msgstr ()
   "Replace the current msgstr string by the top of the kill ring."
   (interactive)
   (k-po-find-span-of-entry)
-  (if (k-po-set-msgstr-form (if (eq last-command 'yank) '(yank-pop 1) '(yank)))
-      (k-po-maybe-delete-previous-untranslated))
+  (when (k-po-set-msgstr-form
+         (lambda ()
+           (if (eq last-command 'yank)
+               (yank-pop 1)
+             (yank))))
+    (k-po-maybe-delete-previous-untranslated))
   (setq this-command 'yank))
 
 (defun k-po-fade-out-entry ()
@@ -2027,23 +2031,22 @@ the ediff control panel."
   (if (eq (preceding-char) ?<)
       (delete-region (1- (point)) (point-max)))
   (run-hooks 'k-po-subedit-exit-hook)
-  (let ((string (buffer-string)))
+  (let ((str (buffer-string)))
     (k-po-subedit-abort)
     (k-po-find-span-of-entry)
     (cond ((= (point) k-po-start-of-msgid)
-           (k-po-set-comment string)
+           (k-po-set-comment str)
            (k-po-redisplay))
           ((= (point) k-po-start-of-msgstr-form)
-           (if (k-po-set-msgstr-form string)
-               (progn
-                 (k-po-maybe-delete-previous-untranslated)
-                 (if (and k-po-auto-fuzzy-on-edit
-                          (eq k-po-entry-type 'translated))
-                     (progn
-                       (k-po-decrease-type-counter)
-                       (k-po-add-attribute "fuzzy")
-                       (k-po-current-entry)
-                       (k-po-increase-type-counter))))))
+           (when (k-po-set-msgstr-form str)
+             (k-po-maybe-delete-previous-untranslated)
+             (if (and k-po-auto-fuzzy-on-edit
+                      (eq k-po-entry-type 'translated))
+                 (progn
+                   (k-po-decrease-type-counter)
+                   (k-po-add-attribute "fuzzy")
+                   (k-po-current-entry)
+                   (k-po-increase-type-counter)))))
           (t (debug)))))
 
 (defun k-po-edit-string (string type expand-tabs)
@@ -2423,8 +2426,8 @@ If the command is repeated many times in a row, cycle through contexts."
 (defvar k-po-mark-string-function)
 
 ;; Dynamically set within k-po-tags-search for k-po-tags-loop-operate.
-(defvar k-po-current-k-po-buffer)
-(defvar k-po-current-k-po-keywords)
+(defvar k-po-current-po-buffer)
+(defvar k-po-current-po-keywords)
 
 (defun k-po-tags-search (restart)
   "Find an unmarked translatable string through all files in tags table.
@@ -2436,8 +2439,8 @@ With prefix argument, restart search at first file."
   (k-po-dehighlight k-po-marking-overlay)
   (setq k-po-string-contents nil)
   ;; Search for a string which might later be marked for translation.
-  (let ((k-po-current-k-po-buffer (current-buffer))
-        (k-po-current-k-po-keywords k-po-keywords))
+  (let ((k-po-current-po-buffer (current-buffer))
+        (k-po-current-po-keywords k-po-keywords))
     (pop-to-buffer k-po-string-buffer)
     (if (and (not restart)
              (eq (car tags-loop-operate) 'k-po-tags-loop-operate))
@@ -2447,24 +2450,24 @@ With prefix argument, restart search at first file."
       (setq tags-loop-scan '(k-po-tags-loop-scan)
             tags-loop-operate '(k-po-tags-loop-operate))
       (tags-loop-continue t))
-    (select-window (get-buffer-window k-po-current-k-po-buffer)))
-  (if k-po-string-contents
-      (let ((window (selected-window))
-            (buffer k-po-string-buffer)
-            (start k-po-string-start)
-            (end k-po-string-end))
-        ;; Try to fit the string in the displayed part of its window.
-        (select-window (get-buffer-window buffer))
-        (goto-char start)
-        (or (pos-visible-in-window-p start)
-            (recenter '(nil)))
-        (if (pos-visible-in-window-p end)
-            (goto-char end)
+    (select-window (get-buffer-window k-po-current-po-buffer)))
+  (when k-po-string-contents
+    (let ((window (selected-window))
+          (buffer k-po-string-buffer)
+          (start k-po-string-start)
+          (end k-po-string-end))
+      ;; Try to fit the string in the displayed part of its window.
+      (select-window (get-buffer-window buffer))
+      (goto-char start)
+      (or (pos-visible-in-window-p start)
+          (recenter '(nil)))
+      (if (pos-visible-in-window-p end)
           (goto-char end)
-          (recenter -1))
-        (select-window window)
-        ;; Highlight the string as found.
-        (k-po-highlight k-po-marking-overlay start end buffer))))
+        (goto-char end)
+        (recenter -1))
+      (select-window window)
+      ;; Highlight the string as found.
+      (k-po-highlight k-po-marking-overlay start end buffer))))
 
 (defun k-po-tags-loop-scan ()
   "Decide if the current buffer is still interesting for PO mode strings."
@@ -2477,11 +2480,10 @@ With prefix argument, restart search at first file."
 (defun k-po-tags-loop-operate ()
   "Find an acceptable tag in the current buffer, according to mode.
 Disregard some simple strings which are most probably non-translatable."
-  (k-po-preset-string-functions)
   (let ((continue t)
         data)
     (while continue
-      (setq data (apply k-po-find-string-function k-po-current-k-po-keywords nil))
+      (setq data (apply k-po-find-string-function k-po-current-po-keywords nil))
       (if data
           ;; Push the string just found into a work buffer for study.
           (with-temp-buffer
@@ -2505,7 +2507,7 @@ Disregard some simple strings which are most probably non-translatable."
     (if data
         ;; Save information for marking functions.
         (let ((buffer (current-buffer)))
-          (with-current-buffer k-po-current-k-po-buffer
+          (with-current-buffer k-po-current-po-buffer
             (setq k-po-string-contents (nth 0 data)
                   k-po-string-buffer buffer
                   k-po-string-start (nth 1 data)
@@ -2516,17 +2518,16 @@ Disregard some simple strings which are most probably non-translatable."
 
 (defun k-po-mark-found-string (keyword)
   "Mark last found string in program sources as translatable, using KEYWORD."
-  (if (not k-po-string-contents)
-      (error "No such string"))
+  (unless k-po-string-contents
+    (error "No such string"))
   (k-po-dehighlight k-po-marking-overlay)
   (let ((contents k-po-string-contents)
         (buffer k-po-string-buffer)
         (start k-po-string-start)
         (end k-po-string-end)
-        line string)
+        line)
     ;; Mark string in program sources.
-    (save-excursion
-      (set-buffer buffer)
+    (with-current-buffer buffer
       (setq line (count-lines (point-min) start))
       (apply k-po-mark-string-function start end keyword nil))
     ;; Add PO file entry.
@@ -2535,7 +2536,8 @@ Disregard some simple strings which are most probably non-translatable."
                          (buffer-file-name k-po-string-buffer)
                          line))
     (save-excursion
-      (insert (k-po-eval-requoted contents "msgid" nil) "msgstr \"\"\n"))
+      (insert (k-po-call-requoted contents "msgid" nil)
+              "msgstr \"\"\n"))
     (setq k-po-untranslated-counter (1+ k-po-untranslated-counter))
     (k-po-update-mode-line-string)
     (setq k-po-string-contents nil)))
@@ -2553,7 +2555,8 @@ keyword for subsequent commands, also added to possible completions."
   (if arg
       (let ((keyword (list (read-from-minibuffer "Keyword: "))))
         (setq k-po-keywords (cons keyword (delete keyword k-po-keywords))))
-    (or k-po-string-contents (error "No such string"))
+    (unless k-po-string-contents
+      (error "No such string"))
     (let* ((default (car (car k-po-keywords)))
            (keyword (completing-read (format "Mark with keyword? [%s] "
                                              default)
@@ -2563,25 +2566,34 @@ keyword for subsequent commands, also added to possible completions."
 
 ;;; Unknown mode specifics.
 
-(defun k-po-preset-string-functions ()
-  "Preset FIND-STRING-FUNCTION and MARK-STRING-FUNCTION according to mode.
-These variables are locally set in source buffer only when not already bound."
-  (let ((pair (cond ((equal major-mode 'awk-mode)
-                     '(k-po-find-awk-string . k-po-mark-awk-string))
-                    ((member major-mode '(c-mode c++-mode))
-                     '(k-po-find-c-string . k-po-mark-c-string))
-                    ((equal major-mode 'emacs-lisp-mode)
-                     '(k-po-find-emacs-lisp-string . k-po-mark-emacs-lisp-string))
-                    ((equal major-mode 'python-mode)
-                     '(k-po-find-python-string . k-po-mark-python-string))
-                    ((and (equal major-mode 'sh-mode)
-                          (string-equal mode-line-process "[bash]"))
-                     '(k-po-find-bash-string . k-po-mark-bash-string))
-                    (t '(k-po-find-unknown-string . k-po-mark-unknown-string)))))
-    (or (boundp 'k-po-find-string-function)
-        (setq-local k-po-find-string-function (car pair)))
-    (or (boundp 'k-po-mark-string-function)
-        (setq-local k-po-mark-string-function (cdr pair)))))
+(defvar-local k-po-find-string-function
+  (cond ((equal major-mode 'awk-mode)
+         #'k-po-find-awk-string)
+        ((member major-mode '(c-mode c++-mode))
+         #'k-po-find-c-string)
+        ((equal major-mode 'emacs-lisp-mode)
+         #'k-po-find-emacs-lisp-string)
+        ((equal major-mode 'python-mode)
+         #'k-po-find-python-string)
+        ((and (equal major-mode 'sh-mode)
+              (string-equal mode-line-process "[bash]"))
+         #'k-po-find-bash-string)
+        (t
+         #'k-po-find-unknown-string)))
+(defvar-local k-po-mark-string-function
+  (cond ((equal major-mode 'awk-mode)
+         #'k-po-mark-awk-string)
+        ((member major-mode '(c-mode c++-mode))
+         #'k-po-mark-c-string)
+        ((equal major-mode 'emacs-lisp-mode)
+         #'k-po-mark-emacs-lisp-string)
+        ((equal major-mode 'python-mode)
+         #'k-po-mark-python-string)
+        ((and (equal major-mode 'sh-mode)
+              (string-equal mode-line-process "[bash]"))
+         #'k-po-mark-bash-string)
+        (t
+         #'k-po-mark-unknown-string)))
 
 (defun k-po-find-unknown-string (keywords)
   "Dummy function to skip over a file, finding no string in it."
