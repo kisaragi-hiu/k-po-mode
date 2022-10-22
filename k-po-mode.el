@@ -769,8 +769,7 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
     ("^#,\\(.*\\)" 1 font-lock-function-name-face)
     ("^\\(\\(msg\\(ctxt\\|id\\(_plural\\)?\\|str\\(\\[[0-9]\\]\\)?\\)\\) \\)?\"\\|\"$"
      . font-lock-keyword-face)
-    ("\\\\.\\|%[*$-.0-9hjltuzL]*[a-zA-Z]" . font-lock-variable-name-face))
-    
+    ("\\\\.\\|%[$-.0-9hjltuzL]*[a-zA-Z]" . font-lock-variable-name-face))
   "Additional expressions to highlight in PO mode.")
 
 ;; Old activator for 'font lock'.  Is it still useful?  I don't think so.
