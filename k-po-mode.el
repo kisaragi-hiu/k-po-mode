@@ -72,7 +72,7 @@ Value is nil, t, or ask."
   :type 'boolean
   :group 'po)
 
-(defcustom po-auto-update-file-header t
+(defcustom po-auto-update-file-header 'ask
   "*Automatically revise headers.  Value is nil, t, or ask."
   :type '(choice (const nil)
                  (const t)
