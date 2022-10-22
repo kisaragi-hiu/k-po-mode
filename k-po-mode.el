@@ -801,8 +801,7 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
 (define-abbrev-table 'k-po-mode-abbrev-table ())
 
 (defvar k-po-mode-map
-  ;; Use (make-keymap) because (make-sparse-keymap) does not work on Demacs.
-  (let ((k-po-mode-map (make-keymap)))
+  (let ((k-po-mode-map (make-sparse-keymap)))
     (suppress-keymap k-po-mode-map)
     (define-key k-po-mode-map "\C-i"        #'k-po-unfuzzy)
     (define-key k-po-mode-map "\C-j"        #'k-po-msgid-to-msgstr)
@@ -927,11 +926,11 @@ all reachable through 'M-x customize', in group 'Emacs.Editing.I18n.Po'."
 
 (defvar k-po-subedit-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "\C-c\C-a" 'k-po-subedit-cycle-auxiliary)
-    (define-key map "\C-c\C-c" 'k-po-subedit-exit)
-    (define-key map (kbd "C-c C-'") 'k-po-subedit-exit)
-    (define-key map "\C-c\C-e" 'k-po-subedit-ediff)
-    (define-key map "\C-c\C-k" 'k-po-subedit-abort)
+    (define-key map "\C-c\C-a" #'k-po-subedit-cycle-auxiliary)
+    (define-key map "\C-c\C-c" #'k-po-subedit-exit)
+    (define-key map (kbd "C-c C-'") #'k-po-subedit-exit)
+    (define-key map "\C-c\C-e" #'k-po-subedit-ediff)
+    (define-key map "\C-c\C-k" #'k-po-subedit-abort)
     map)
   "Keymap while editing a PO mode entry (or the full PO file).")
 
