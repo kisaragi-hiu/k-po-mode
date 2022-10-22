@@ -451,32 +451,32 @@ The current buffer should be in PO mode, when this function is called."
 
 ;; Flag telling that MODE-LINE-STRING should be displayed.  See 'Window'
 ;; page below.  Exceptionally, this variable is local to *all* buffers.
-(defvar k-po-mode-flag)
+(defvar-local k-po-mode-flag nil)
 
 ;; PO buffers are kept read-only to prevent random modifications.  READ-ONLY
 ;; holds the value of the read-only flag before PO mode was entered.
-(defvar k-po-read-only)
+(defvar-local k-po-read-only nil)
 
 ;; The current entry extends from START-OF-ENTRY to END-OF-ENTRY, it
 ;; includes preceding whitespace and excludes following whitespace.  The
 ;; start of keyword lines are START-OF-MSGID and START-OF-MSGSTR.
 ;; ENTRY-TYPE classifies the entry.
-(defvar k-po-start-of-entry)
-(defvar k-po-start-of-msgctxt) ; = k-po-start-of-msgid if there is no msgctxt
-(defvar k-po-start-of-msgid)
-(defvar k-po-start-of-msgid_plural) ; = nil if there is no msgid_plural
-(defvar k-po-start-of-msgstr-block)
-(defvar k-po-start-of-msgstr-form)
-(defvar k-po-end-of-msgstr-form)
-(defvar k-po-end-of-entry)
-(defvar k-po-entry-type)
+(defvar-local k-po-start-of-entry nil)
+(defvar-local k-po-start-of-msgctxt nil) ; = k-po-start-of-msgid if there is no msgctxt
+(defvar-local k-po-start-of-msgid nil)
+(defvar-local k-po-start-of-msgid_plural nil) ; = nil if there is no msgid_plural
+(defvar-local k-po-start-of-msgstr-block nil)
+(defvar-local k-po-start-of-msgstr-form nil)
+(defvar-local k-po-end-of-msgstr-form nil)
+(defvar-local k-po-end-of-entry nil)
+(defvar-local k-po-entry-type nil)
 
 ;; A few counters are usefully shown in the Emacs mode line.
-(defvar k-po-translated-counter)
-(defvar k-po-fuzzy-counter)
-(defvar k-po-untranslated-counter)
-(defvar k-po-obsolete-counter)
-(defvar k-po-mode-line-string)
+(defvar-local k-po-translated-counter nil)
+(defvar-local k-po-fuzzy-counter nil)
+(defvar-local k-po-untranslated-counter nil)
+(defvar-local k-po-obsolete-counter nil)
+(defvar-local k-po-mode-line-string nil)
 
 ;; PO mode keeps track of fields being edited, for one given field should
 ;; have one editing buffer at most, and for exiting a PO buffer properly
@@ -488,25 +488,25 @@ The current buffer should be in PO mode, when this function is called."
 ;; temporary Emacs buffer used to edit the string.  OVERLAY-INFO, when not
 ;; nil, holds an overlay (or if overlays are not supported, a cons of two
 ;; markers) for this msgid string which became highlighted for the edit.
-(defvar k-po-edited-fields)
+(defvar-local k-po-edited-fields nil)
 
 ;; We maintain a set of movable pointers for returning to entries.
-(defvar k-po-marker-stack)
+(defvar-local k-po-marker-stack nil)
 
 ;; SEARCH path contains a list of directories where files may be found,
 ;; in a format suitable for read completion.  Each directory includes
 ;; its trailing slash.  PO mode starts with "./" and "../".
-(defvar k-po-search-path)
+(defvar-local k-po-search-path nil)
 
 ;; The following variables are meaningful only when REFERENCE-CHECK
 ;; is identical to START-OF-ENTRY, else they should be recomputed.
 ;; REFERENCE-ALIST contains all known references for the current
-;; entry, each list element is (PROMPT FILE LINE), where PROMPT may
+;; entry, each list element is (PROMPT FILE LINE nil), where PROMPT may
 ;; be used for completing read, FILE is a string and LINE is a number.
 ;; REFERENCE-CURSOR is a cycling cursor into REFERENCE-ALIST.
-(defvar k-po-reference-alist)
-(defvar k-po-reference-cursor)
-(defvar k-po-reference-check)
+(defvar-local k-po-reference-alist nil)
+(defvar-local k-po-reference-cursor nil)
+(defvar-local k-po-reference-check nil)
 
 ;; The following variables are for marking translatable strings in program
 ;; sources.  KEYWORDS is the list of keywords for marking translatable
@@ -516,12 +516,12 @@ The current buffer should be in PO mode, when this function is called."
 ;; describe where it is.  MARKING-OVERLAY, if not 'nil', holds the overlay
 ;; which highlight the last found string; for older Emacses, it holds the cons
 ;; of two markers around the highlighted region.
-(defvar k-po-keywords)
-(defvar k-po-string-contents)
-(defvar k-po-string-buffer)
-(defvar k-po-string-start)
-(defvar k-po-string-end)
-(defvar k-po-marking-overlay)
+(defvar-local k-po-keywords nil)
+(defvar-local k-po-string-contents nil)
+(defvar-local k-po-string-buffer nil)
+(defvar-local k-po-string-start nil)
+(defvar-local k-po-string-end nil)
+(defvar-local k-po-marking-overlay nil)
 
 ;;; PO mode variables and constants (usually not to customize).
 
@@ -857,64 +857,42 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
   "Keymap for PO mode.")
 
 ;;;###autoload
-(defun k-po-mode ()
-  "Major mode for translators when they edit PO files.
+(define-derived-mode k-po-mode fundamental-mode
+  "PO"
+  "Major mode for translators to edit PO files.
 
 Special commands:
 \\{k-po-mode-map}
 Turning on PO mode calls the value of the variable 'k-po-mode-hook',
 if that value is non-nil.  Behaviour may be adjusted through some variables,
-all reachable through \\[customize], in group 'Emacs.Editing.I18n.Po'."
-  (interactive)
-  (kill-all-local-variables)
-  (setq major-mode 'k-po-mode
-        mode-name "PO")
-  (use-local-map k-po-mode-map)
-  (if (fboundp 'easy-menu-define)
-      (easy-menu-define k-po-mode-menu k-po-mode-map "" k-po-mode-menu-layout))
-  (set (make-local-variable 'font-lock-defaults) '(k-po-font-lock-keywords t))
-
-  (set (make-local-variable 'k-po-read-only) buffer-read-only)
+all reachable through \\[customize], in group 'Emacs.Editing.I18n.K-po'."
+  (when (fboundp 'easy-menu-define)
+    (easy-menu-define k-po-mode-menu k-po-mode-map "" k-po-mode-menu-layout))
+  (setq-local font-lock-defaults '(k-po-font-lock-keywords t))
+  (setq-local k-po-read-only buffer-read-only)
   (setq buffer-read-only t)
-
-  (make-local-variable 'k-po-start-of-entry)
-  (make-local-variable 'k-po-start-of-msgctxt)
-  (make-local-variable 'k-po-start-of-msgid)
-  (make-local-variable 'k-po-start-of-msgid_plural)
-  (make-local-variable 'k-po-start-of-msgstr-block)
-  (make-local-variable 'k-po-end-of-entry)
-  (make-local-variable 'k-po-entry-type)
-
-  (make-local-variable 'k-po-translated-counter)
-  (make-local-variable 'k-po-fuzzy-counter)
-  (make-local-variable 'k-po-untranslated-counter)
-  (make-local-variable 'k-po-obsolete-counter)
-  (make-local-variable 'k-po-mode-line-string)
 
   (setq k-po-mode-flag t)
 
   (k-po-check-file-header)
   (k-po-compute-counters nil)
 
-  (set (make-local-variable 'k-po-edited-fields) nil)
-  (set (make-local-variable 'k-po-marker-stack) nil)
-  (set (make-local-variable 'k-po-search-path) '(("./") ("../")))
+  (setq-local k-po-edited-fields nil)
+  (setq-local k-po-marker-stack nil)
+  (setq-local k-po-search-path '(("./") ("../")))
 
-  (set (make-local-variable 'k-po-reference-alist) nil)
-  (set (make-local-variable 'k-po-reference-cursor) nil)
-  (set (make-local-variable 'k-po-reference-check) 0)
+  (setq-local k-po-reference-alist nil)
+  (setq-local k-po-reference-cursor nil)
+  (setq-local k-po-reference-check 0)
 
-  (set (make-local-variable 'k-po-keywords)
-       '(("gettext") ("gettext_noop") ("_") ("N_")))
-  (set (make-local-variable 'k-po-string-contents) nil)
-  (set (make-local-variable 'k-po-string-buffer) nil)
-  (set (make-local-variable 'k-po-string-start) nil)
-  (set (make-local-variable 'k-po-string-end) nil)
-  (set (make-local-variable 'k-po-marking-overlay) (k-po-create-overlay))
+  (setq-local k-po-keywords '(("gettext") ("gettext_noop") ("_") ("N_")))
+  (setq-local k-po-string-contents nil)
+  (setq-local k-po-string-buffer nil)
+  (setq-local k-po-string-start nil)
+  (setq-local k-po-string-end nil)
+  (setq-local k-po-marking-overlay (k-po-create-overlay))
 
-  (add-hook 'write-contents-functions #'k-po-replace-revision-date)
-
-  (run-hooks 'k-po-mode-hook))
+  (add-hook 'write-contents-functions #'k-po-replace-revision-date))
 
 (defvar k-po-subedit-mode-map
   (let ((map (make-sparse-keymap)))
@@ -928,8 +906,6 @@ all reachable through \\[customize], in group 'Emacs.Editing.I18n.Po'."
 
 
 ;;; Window management.
-
-(make-variable-buffer-local 'k-po-mode-flag)
 
 (defvar k-po-mode-line-entry '(k-po-mode-flag ("  " k-po-mode-line-string))
   "Mode line format entry displaying MODE-LINE-STRING.")
@@ -2121,9 +2097,9 @@ Run functions on k-po-subedit-mode-hook."
                 k-po-edited-fields (cons slot k-po-edited-fields))
           (pop-to-buffer edit-buffer)
           (text-mode)
-          (set (make-local-variable 'k-po-subedit-back-pointer) slot)
-          (set (make-local-variable 'indent-line-function)
-               'indent-relative)
+          (setq-local k-po-subedit-back-pointer slot)
+          (setq-local indent-line-function
+                      'indent-relative)
           (setq buffer-file-coding-system edit-coding)
           (setq local-abbrev-table k-po-mode-abbrev-table)
           (erase-buffer)
@@ -2628,9 +2604,9 @@ These variables are locally set in source buffer only when not already bound."
                      '(k-po-find-bash-string . k-po-mark-bash-string))
                     (t '(k-po-find-unknown-string . k-po-mark-unknown-string)))))
     (or (boundp 'k-po-find-string-function)
-        (set (make-local-variable 'k-po-find-string-function) (car pair)))
+        (setq-local k-po-find-string-function (car pair)))
     (or (boundp 'k-po-mark-string-function)
-        (set (make-local-variable 'k-po-mark-string-function) (cdr pair)))))
+        (setq-local k-po-mark-string-function (cdr pair)))))
 
 (defun k-po-find-unknown-string (keywords)
   "Dummy function to skip over a file, finding no string in it."
