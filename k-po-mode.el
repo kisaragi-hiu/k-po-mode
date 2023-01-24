@@ -1932,6 +1932,8 @@ comments) from the current entry, if the user gives the permission."
 
 ;; Avoid byte compiler warnings.
 (defvar entry-buffer)
+(defvar-local k-po-subedit--reused? nil
+  "Used to mark whether a subedit buffer is in a reused window.")
 
 (defun k-po-ediff-buffers-exit-recursive (b1 b2 oldbuf end)
   "Ediff buffer B1 and B2, pop back to OLDBUF and replace the old variants.
@@ -2016,7 +2018,8 @@ the ediff control panel."
          (entry-buffer (marker-buffer entry-marker)))
     (if (null entry-buffer)
         (error "Corresponding PO buffer does not exist anymore")
-      (or (one-window-p) (delete-window))
+      (unless (or k-po-subedit--reused? (one-window-p))
+        (delete-window))
       (switch-to-buffer entry-buffer)
       (goto-char entry-marker)
       (and overlay-info (k-po-dehighlight overlay-info))
@@ -2061,6 +2064,7 @@ Run functions on k-po-subedit-mode-hook."
                             (concat "*" (buffer-name) "*")))
               (edit-coding buffer-file-coding-system)
               (buffer (current-buffer))
+              (window-count-before-switch (count-windows))
               overlay slot)
           (if (and (eq type 'msgstr))
               ;; ;; Try showing all of msgid in the upper window while editing.
@@ -2078,6 +2082,8 @@ Run functions on k-po-subedit-mode-hook."
                 k-po-edited-fields (cons slot k-po-edited-fields))
           (pop-to-buffer edit-buffer)
           (text-mode)
+          (when (= window-count-before-switch (count-windows))
+            (setq-local k-po-subedit--reused? t))
           (setq-local k-po-subedit-back-pointer slot)
           (setq-local indent-line-function
                       'indent-relative)
