@@ -1931,7 +1931,7 @@ comments) from the current entry, if the user gives the permission."
               (define-key ediff-mode-map "Q" 'k-po-ediff-quit)))
 
 ;; Avoid byte compiler warnings.
-(defvar entry-buffer)
+(defvar k-po-subedit--entry-buffer)
 (defvar-local k-po-subedit--reused? nil
   "Used to mark whether a subedit buffer is in a reused window.")
 
@@ -1949,7 +1949,7 @@ For more info cf. `k-po-subedit-ediff'."
   (delete-region (point-min) end)
   (insert-buffer-substring b2)
   (mapc 'kill-buffer `(,b1 ,b2))
-  (display-buffer entry-buffer t))
+  (display-buffer k-po-subedit--entry-buffer t))
 
 (defun k-po-subedit-ediff ()
   "Edit the subedit buffer using `ediff'.
@@ -1972,7 +1972,7 @@ the ediff control panel."
          buf2 start-1 end-1 start-2 end-2
          (back-pointer k-po-subedit-back-pointer)
          (entry-marker (nth 0 back-pointer))
-         (entry-buffer (marker-buffer entry-marker)))
+         (k-po-subedit--entry-buffer (marker-buffer entry-marker)))
     (goto-char (point-min))
     (if (looking-at marker-regex)
         (and (setq buf1 (match-string-no-properties 1))
@@ -2015,12 +2015,12 @@ the ediff control panel."
          (back-pointer k-po-subedit-back-pointer)
          (entry-marker (nth 0 back-pointer))
          (overlay-info (nth 2 back-pointer))
-         (entry-buffer (marker-buffer entry-marker)))
-    (if (null entry-buffer)
+         (k-po-subedit--entry-buffer (marker-buffer entry-marker)))
+    (if (null k-po-subedit--entry-buffer)
         (error "Corresponding PO buffer does not exist anymore")
       (unless (or k-po-subedit--reused? (one-window-p))
         (delete-window))
-      (switch-to-buffer entry-buffer)
+      (switch-to-buffer k-po-subedit--entry-buffer)
       (goto-char entry-marker)
       (and overlay-info (k-po-dehighlight overlay-info))
       (kill-buffer edit-buffer)
@@ -2293,9 +2293,9 @@ Otherwise, move nothing, and just return 'nil'."
   "Cycle auxiliary file, but from the translation edit buffer."
   (interactive)
   (let* ((entry-marker (nth 0 k-po-subedit-back-pointer))
-         (entry-buffer (marker-buffer entry-marker))
+         (k-po-subedit--entry-buffer (marker-buffer entry-marker))
          (buffer (current-buffer)))
-    (pop-to-buffer entry-buffer)
+    (pop-to-buffer k-po-subedit--entry-buffer)
     (k-po-cycle-auxiliary)
     (pop-to-buffer buffer)))
 
