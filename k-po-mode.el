@@ -2,7 +2,7 @@
 
 ;; Author: Kisaragi Hiu
 ;; Version: 0.1
-;; Package-Requires: ((emacs "24.3"))
+;; Package-Requires: ((emacs "24.3") (f "0.20.0"))
 ;; Homepage: homepage
 ;; Keywords: po languages
 
@@ -31,6 +31,9 @@
 ;; works.
 
 ;;; Code:
+
+(require 'f)
+
 
 ;;; Emacs portability matters - part I.
 ;;; Here is the minimum for customization to work.  See part II.
@@ -3215,6 +3218,34 @@ strings remain."
       (when quit
         (save-buffer)
         (kill-buffer (current-buffer))))))
+
+(defun k-po-compile (po mo)
+  "Compile PO file to MO (a path)."
+  (interactive
+   (let* ((po (if (derived-mode-p 'k-po-mode)
+                  buffer-file-name
+                (read-file-name "Source PO file: ")))
+          (mo (if current-prefix-arg
+                  (f-join (read-directory-name "Place compiled MO at: ")
+                          (concat (f-base po) ".mo"))
+                (f-join (xdg-data-home)
+                        "locale"
+                        "zh_TW"
+                        "LC_MESSAGES"
+                        (concat (f-base po) ".mo")))))
+     (list po mo)))
+  (make-directory (f-dirname mo) t)
+  (let (status output)
+    (with-temp-buffer
+      (setq status (call-process "msgfmt" nil t nil
+                                 "-o" mo po))
+      (setq output (string-trim (buffer-string))))
+    (if (= 0 status)
+        (message "Compiled %s to %s" po mo)
+      (message "Something went wrong. See *k/po* for output")
+      (with-current-buffer (get-buffer-create "*k/po*")
+        (erase-buffer)
+        (insert (format "%s" output))))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.po[tx]?\\'\\|\\.po\\." . k-po-mode))
