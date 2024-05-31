@@ -956,6 +956,16 @@ Then, update the mode line counters."
 (defvar k-po-fuzzy-regexp)
 (defvar k-po-untranslated-regexp)
 
+(defun k-po-map-entries (func)
+  "Call FUNC for each entry in the buffer."
+  (save-excursion
+    (goto-char (point-min))
+    (funcall func (k-po-current-entry))
+    (when (re-search-forward "^msgid" nil t)
+      (while (and (re-search-forward k-po-any-msgstr-block-regexp nil t)
+                  (not (eobp)))
+        (funcall func (k-po-current-entry))))))
+
 (defun k-po-compute-counters (echo)
   "Prepare counters for mode line display.  If ECHO, also echo entry position."
   (and echo (k-po-find-span-of-entry))
@@ -963,13 +973,11 @@ Then, update the mode line counters."
         k-po-fuzzy-counter 0
         k-po-untranslated-counter 0
         k-po-obsolete-counter 0)
-  (let ((position 0) (total 0) current here this-entry)
+  (let ((position 0) (total 0) current here)
     ;; FIXME 'here' looks obsolete / 2001-08-23 03:54:26 CEST -ke-
     (save-excursion
       (k-po-find-span-of-entry)
       (setq current k-po-start-of-msgstr-block)
-      ;; New entry-object-based extraction
-      (setq this-entry (k-po--entry-from-vars))
       (goto-char (point-min))
       ;; While counting, skip the header entry, for consistency with msgfmt.
       (k-po-find-span-of-entry)
