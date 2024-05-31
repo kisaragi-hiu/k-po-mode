@@ -36,6 +36,7 @@
 
 (require 'k-po-extract)
 (require 'k-po-entry)
+(require 'k-po-sidebar)
 
 
 ;;; Emacs portability matters - part I.
@@ -810,7 +811,7 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
     ;; (define-key k-po-mode-map (kbd "C-c c")  #'k-po-save-entry)
     (define-key k-po-mode-map (kbd "C-c f")     #'k-po-next-fuzzy-entry)
     (define-key k-po-mode-map (kbd "C-c k")     #'k-po-kill-msgstr)
-    ;; (define-key k-po-mode-map (kbd "C-c l")  #'k-po-lookup-lexicons)
+    (define-key k-po-mode-map (kbd "C-c l")     #'k-po-sidebar-toggle)
     (define-key k-po-mode-map (kbd "C-c m")     #'k-po-push-location)
     (define-key k-po-mode-map (kbd "C-c n")     #'k-po-next-entry)
     (define-key k-po-mode-map (kbd "C-c o")     #'k-po-next-obsolete-entry)
@@ -864,9 +865,9 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
 
 Special commands:
 \\{k-po-mode-map}
-Turning on PO mode calls the value of the variable 'k-po-mode-hook',
+Turning on PO mode calls the value of the variable `k-po-mode-hook',
 if that value is non-nil.  Behaviour may be adjusted through some variables,
-all reachable through \\[customize], in group 'Emacs.Editing.I18n.K-po'."
+all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
   (when (fboundp 'easy-menu-define)
     (easy-menu-define k-po-mode-menu k-po-mode-map "" k-po-mode-menu-layout))
   (setq-local font-lock-defaults '(k-po-font-lock-keywords t))
@@ -891,6 +892,7 @@ all reachable through \\[customize], in group 'Emacs.Editing.I18n.K-po'."
   (setq-local k-po-string-end nil)
   (setq-local k-po-marking-overlay (k-po-create-overlay))
 
+  (add-hook 'post-command-hook #'k-po-sidebar--post-command-h)
   (add-hook 'write-contents-functions #'k-po-replace-revision-date))
 
 (defvar k-po-subedit-mode-map
