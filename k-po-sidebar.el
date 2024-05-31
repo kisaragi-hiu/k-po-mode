@@ -3,9 +3,11 @@
 ;;; Commentary:
 
 ;; A sidebar buffer for displaying information about an entry.
-;; Inspired by org-roam.
+;; Based on Org-roam v1's sidebar implementation.
 
 ;;; Code:
+
+(require 'magit-section)
 
 (require 'k-po-entry)
 
@@ -79,7 +81,7 @@ Has an effect if and only if `k-po-sidebar-position' is `top' or `bottom'."
 
 (defun k-po-sidebar--buffer-init ()
   "Initialize the sidebar buffer."
-  (read-only-mode))
+  (magit-section-mode))
 
 (defun k-po-sidebar--buffer-update (source-buffer)
   "Update the sidebar buffer contents for SOURCE-BUFFER.
@@ -92,9 +94,13 @@ SOURCE-BUFFER is the PO file buffer."
           (setq msgid (k-po-entry-msgid entry))
           (setq msgstr (k-po-entry-msgstr entry))))
       (erase-buffer)
-      (insert "Test heading\n")
-      (insert "source text: " msgid "\n")
-      (insert "target text: " msgstr "\n"))))
+      ;; Root section
+      (magit-insert-section (magit-section)
+        (magit-insert-section (magit-section)
+          (magit-insert-heading "Heading")
+          (magit-insert-section-body
+            (insert "source text: " msgid "\n")
+            (insert "target text: " msgstr "\n")))))))
 
 (defun k-po-sidebar--post-command-h ()
   "Hook function for updating the sidebar buffer in `post-command-hook'."

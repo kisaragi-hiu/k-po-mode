@@ -892,7 +892,7 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
   (setq-local k-po-string-end nil)
   (setq-local k-po-marking-overlay (k-po-create-overlay))
 
-  (add-hook 'post-command-hook #'k-po-sidebar--post-command-h)
+  (add-hook 'post-command-hook #'k-po-sidebar--post-command-h nil t)
   (add-hook 'write-contents-functions #'k-po-replace-revision-date))
 
 (defvar k-po-subedit-mode-map
