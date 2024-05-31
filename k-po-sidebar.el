@@ -113,7 +113,8 @@ SOURCE-BUFFER is the PO file buffer."
                   (magit-insert-section (magit-section)
                     (magit-insert-heading
                       (propertize
-                       (format "(%sx) %s"
+                       (format "%s\n(%sx) %s"
+                               source
                                count
                                target)
                        'face '(bold variable-pitch)))
