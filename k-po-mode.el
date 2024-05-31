@@ -971,7 +971,6 @@ iteration, and finalized using `progress-reporter-done' afterwards."
 
 (defun k-po-compute-counters (echo)
   "Prepare counters for mode line display.  If ECHO, also echo entry position."
-  (and echo (k-po-find-span-of-entry))
   (setq k-po-translated-counter 0
         k-po-fuzzy-counter 0
         k-po-untranslated-counter 0
@@ -979,13 +978,12 @@ iteration, and finalized using `progress-reporter-done' afterwards."
   (let ((position 0) (total 0) current here)
     ;; FIXME 'here' looks obsolete / 2001-08-23 03:54:26 CEST -ke-
     (save-excursion
-      (k-po-find-span-of-entry)
-      (setq current k-po-start-of-msgstr-block)
+      (setq current (k-po-entry-msgstr-block-start (k-po-current-entry)))
       (goto-char (point-min))
       ;; While counting, skip the header entry, for consistency with msgfmt.
-      (k-po-find-span-of-entry)
-      (if (string-equal (k-po-get-msgid) "")
-          (goto-char k-po-end-of-entry))
+      (let ((entry (k-po-current-entry)))
+        (when (string-equal (k-po-entry-msgid entry) "")
+          (goto-char (k-po-entry-end entry))))
       (when (re-search-forward "^msgid" (point-max) t)
         ;; Start counting
         (while (re-search-forward k-po-any-msgstr-block-regexp nil t)
@@ -1251,11 +1249,11 @@ fuzzy, untranslated, or translated."
 (defun k-po-push-location ()
   "Stack the location of the current entry, for later return."
   (interactive)
-  (k-po-find-span-of-entry)
-  (save-excursion
-    (goto-char k-po-start-of-msgid)
-    (setq k-po-marker-stack (cons (point-marker) k-po-marker-stack)))
-  (k-po-say-location-depth))
+  (let ((entry (k-po-current-entry)))
+    (save-excursion
+      (goto-char (k-po-entry-msgid-start entry))
+      (setq k-po-marker-stack (cons (point-marker) k-po-marker-stack)))
+    (k-po-say-location-depth)))
 
 (defun k-po-pop-location ()
   "Unstack a saved location, and return to the corresponding entry."
@@ -1271,16 +1269,15 @@ fuzzy, untranslated, or translated."
 (defun k-po-exchange-location ()
   "Exchange the location of the current entry with the top of stack."
   (interactive)
-  (if k-po-marker-stack
-      (progn
-        (k-po-find-span-of-entry)
-        (goto-char k-po-start-of-msgid)
-        (let ((location (point-marker)))
-          (goto-char (car k-po-marker-stack))
-          (setq k-po-marker-stack (cons location (cdr k-po-marker-stack))))
-        (k-po-display-current-entry)
-        (k-po-say-location-depth))
-    (error "The entry location stack is empty")))
+  (unless k-po-marker-stack
+    (error "The entry location stack is empty"))
+  (let ((entry (k-po-current-entry)))
+    (goto-char (k-po-entry-msgid-start entry))
+    (let ((location (point-marker)))
+      (goto-char (car k-po-marker-stack))
+      (setq k-po-marker-stack (cons location (cdr k-po-marker-stack))))
+    (k-po-display-current-entry)
+    (k-po-say-location-depth)))
 
 (defun k-po-display-current-entry ()
   "Display the current entry."
@@ -1311,9 +1308,9 @@ fuzzy, untranslated, or translated."
 (defun k-po-next-entry-with-regexp (regexp wrap)
   "Display the entry following the current entry which msgstr matches REGEXP.
 If WRAP is not nil, the search may wrap around the buffer."
-  (k-po-find-span-of-entry)
-  (let ((here (point)))
-    (goto-char k-po-end-of-entry)
+  (let ((entry (k-po-current-entry))
+        (here (point)))
+    (goto-char (oref entry end))
     (if (re-search-forward regexp nil t)
         (progn
           (goto-char (match-beginning 0))
@@ -1321,7 +1318,7 @@ If WRAP is not nil, the search may wrap around the buffer."
       (if (and wrap
                (progn
                  (goto-char (point-min))
-                 (re-search-forward regexp k-po-start-of-entry t)))
+                 (re-search-forward regexp (oref entry start) t)))
           (progn
             (goto-char (match-beginning 0))
             (k-po-display-current-entry)
@@ -1332,15 +1329,15 @@ If WRAP is not nil, the search may wrap around the buffer."
 (defun k-po-previous-entry-with-regexp (regexp wrap)
   "Redisplay the entry preceding the current entry which msgstr matches REGEXP.
 If WRAP is not nil, the search may wrap around the buffer."
-  (k-po-find-span-of-entry)
-  (let ((here (point)))
-    (goto-char k-po-start-of-entry)
+  (let ((entry (k-po-current-entry))
+        (here (point)))
+    (goto-char (oref entry start))
     (if (re-search-backward regexp nil t)
         (k-po-display-current-entry)
       (if (and wrap
                (progn
                  (goto-char (point-max))
-                 (re-search-backward regexp k-po-end-of-entry t)))
+                 (re-search-backward regexp (oref entry end) t)))
           (progn
             (k-po-display-current-entry)
             (message "Wrapping around the buffer"))
@@ -1405,15 +1402,16 @@ If WRAP is not nil, the search may wrap around the buffer."
 (defun k-po-msgid-to-msgstr ()
   "Use another window to edit msgstr reinitialized with msgid."
   (interactive)
-  (k-po-find-span-of-entry)
-  (if (or (eq k-po-entry-type 'untranslated)
-          (eq k-po-entry-type 'obsolete)
-          (prog1 (y-or-n-p "Really lose previous translation? ")
-                 (message "")))
-      ;; In an entry with plural forms, use the msgid_plural string,
-      ;; as it is more general than the msgid string.
-      (if (k-po-set-msgstr-form (or (k-po-get-msgid_plural) (k-po-get-msgid)))
-          (k-po-maybe-delete-previous-untranslated))))
+  (let ((entry (k-po-current-entry)))
+    (if (or (k-po-entry-type? entry 'untranslated)
+            (k-po-entry-type? entry 'obsolete)
+            (prog1 (y-or-n-p "Really lose previous translation? ")
+              (message "")))
+        ;; In an entry with plural forms, use the msgid_plural string,
+        ;; as it is more general than the msgid string.
+        (if (k-po-set-msgstr-form (or (k-po-entry-msgid_plural entry)
+                                      (k-po-entry-msgid entry)))
+            (k-po-maybe-delete-previous-untranslated)))))
 
 ;; Obsolete entries.
 
@@ -1451,24 +1449,24 @@ exactly.")
 (defun k-po-toggle-fuzzy ()
   "Toggle fuzzy for the current entry."
   (interactive)
-  (k-po-find-span-of-entry)
-  (if (eq k-po-entry-type 'fuzzy)
-      (k-po-delete-attribute "fuzzy")
-    (k-po-add-attribute "fuzzy")))
+  (let ((entry (k-po-current-entry)))
+    (if (k-po-entry-type? entry 'fuzzy)
+        (k-po-delete-attribute "fuzzy")
+      (k-po-add-attribute "fuzzy"))))
 
 (defun k-po-unfuzzy ()
   "Remove the fuzzy attribute for the current entry."
   (interactive)
-  (k-po-find-span-of-entry)
-  (cond ((eq k-po-entry-type 'fuzzy)
-         (k-po-decrease-type-counter)
-         (k-po-delete-attribute "fuzzy")
-         (k-po-maybe-delete-previous-untranslated)
-         (k-po-display-current-entry)
-         (k-po-increase-type-counter)))
-  (if k-po-auto-select-on-unfuzzy
+  (let ((entry (k-po-current-entry)))
+    (when (k-po-entry-type? entry 'fuzzy)
+      (k-po-decrease-type-counter)
+      (k-po-delete-attribute "fuzzy")
+      (k-po-maybe-delete-previous-untranslated)
+      (k-po-display-current-entry)
+      (k-po-increase-type-counter))
+    (when k-po-auto-select-on-unfuzzy
       (k-po-auto-select-entry))
-  (k-po-update-mode-line-string))
+    (k-po-update-mode-line-string)))
 
 ;; Translated entries.
 
@@ -1478,10 +1476,10 @@ exactly.")
   (if (= k-po-translated-counter 0)
       (error "There is no such entry")
     (k-po-next-entry-with-regexp k-po-any-msgstr-block-regexp t)
-    (k-po-find-span-of-entry)
-    (while (not (eq k-po-entry-type 'translated))
-      (k-po-next-entry-with-regexp k-po-any-msgstr-block-regexp t)
-      (k-po-find-span-of-entry))))
+    (let ((entry (k-po-current-entry)))
+      (while (not (k-po-entry-type? entry 'translated))
+        (k-po-next-entry-with-regexp k-po-any-msgstr-block-regexp t)
+        (setq entry (k-po-current-entry))))))
 
 (defun k-po-previous-translated-entry ()
   "Find the previous translated entry, wrapping around if necessary."
@@ -1489,10 +1487,10 @@ exactly.")
   (if (= k-po-translated-counter 0)
       (error "There is no such entry")
     (k-po-previous-entry-with-regexp k-po-any-msgstr-block-regexp t)
-    (k-po-find-span-of-entry)
-    (while (not (eq k-po-entry-type 'translated))
-      (k-po-previous-entry-with-regexp k-po-any-msgstr-block-regexp t)
-      (k-po-find-span-of-entry))))
+    (let ((entry (k-po-current-entry)))
+      (while (not (k-po-entry-type? entry 'translated))
+        (k-po-previous-entry-with-regexp k-po-any-msgstr-block-regexp t)
+        (setq entry (k-po-current-entry))))))
 
 ;; Auto-selection feature.
 
@@ -1503,49 +1501,49 @@ going from untranslated to fuzzy, and from fuzzy to obsolete.
 Plain translated entries are always disregarded unless there are
 no entries of the other types."
   (interactive)
-  (k-po-find-span-of-entry)
-  (goto-char k-po-end-of-entry)
-  (if (and (= k-po-untranslated-counter 0)
-           (= k-po-fuzzy-counter 0)
-           (= k-po-obsolete-counter 0))
-      ;; All entries are plain translated.  Next entry will do, or
-      ;; wrap around if there is none.
-      (if (re-search-forward k-po-any-msgstr-block-regexp nil t)
-          (goto-char (match-beginning 0))
-        (goto-char (point-min)))
-    ;; If over a translated entry, look for an untranslated one first.
-    ;; Else, look for an entry of the same type first.
-    (let ((goal (if (eq k-po-entry-type 'translated)
-                    'untranslated
-                  k-po-entry-type)))
-      (while goal
-        ;; Find an untranslated entry, or wrap up for a fuzzy entry.
-        (if (eq goal 'untranslated)
-            (if (and (> k-po-untranslated-counter 0)
-                     (re-search-forward k-po-untranslated-regexp nil t))
-                (progn
-                  (goto-char (match-beginning 0))
-                  (setq goal nil))
-              (goto-char (point-min))
-              (setq goal 'fuzzy)))
-        ;; Find a fuzzy entry, or wrap up for an obsolete entry.
-        (if (eq goal 'fuzzy)
-            (if (and (> k-po-fuzzy-counter 0)
-                     (re-search-forward k-po-fuzzy-regexp nil t))
-                (progn
-                  (goto-char (match-beginning 0))
-                  (setq goal nil))
-              (goto-char (point-min))
-              (setq goal 'obsolete)))
-        ;; Find an obsolete entry, or wrap up for an untranslated entry.
-        (if (eq goal 'obsolete)
-            (if (and (> k-po-obsolete-counter 0)
-                     (re-search-forward k-po-obsolete-msgstr-regexp nil t))
-                (progn
-                  (goto-char (match-beginning 0))
-                  (setq goal nil))
-              (goto-char (point-min))
-              (setq goal 'untranslated))))))
+  (let ((entry (k-po-current-entry)))
+    (goto-char (oref entry end))
+    (if (and (= k-po-untranslated-counter 0)
+             (= k-po-fuzzy-counter 0)
+             (= k-po-obsolete-counter 0))
+        ;; All entries are plain translated.  Next entry will do, or
+        ;; wrap around if there is none.
+        (if (re-search-forward k-po-any-msgstr-block-regexp nil t)
+            (goto-char (match-beginning 0))
+          (goto-char (point-min)))
+      ;; If over a translated entry, look for an untranslated one first.
+      ;; Else, look for an entry of the same type first.
+      (let ((goal (if (k-po-entry-type? entry 'translated)
+                      'untranslated
+                    (oref entry type))))
+        (while goal
+          ;; Find an untranslated entry, or wrap up for a fuzzy entry.
+          (if (eq goal 'untranslated)
+              (if (and (> k-po-untranslated-counter 0)
+                       (re-search-forward k-po-untranslated-regexp nil t))
+                  (progn
+                    (goto-char (match-beginning 0))
+                    (setq goal nil))
+                (goto-char (point-min))
+                (setq goal 'fuzzy)))
+          ;; Find a fuzzy entry, or wrap up for an obsolete entry.
+          (if (eq goal 'fuzzy)
+              (if (and (> k-po-fuzzy-counter 0)
+                       (re-search-forward k-po-fuzzy-regexp nil t))
+                  (progn
+                    (goto-char (match-beginning 0))
+                    (setq goal nil))
+                (goto-char (point-min))
+                (setq goal 'obsolete)))
+          ;; Find an obsolete entry, or wrap up for an untranslated entry.
+          (if (eq goal 'obsolete)
+              (if (and (> k-po-obsolete-counter 0)
+                       (re-search-forward k-po-obsolete-msgstr-regexp nil t))
+                  (progn
+                    (goto-char (match-beginning 0))
+                    (setq goal nil))
+                (goto-char (point-min))
+                (setq goal 'untranslated)))))))
   ;; Display this entry nicely.
   (k-po-display-current-entry))
 
@@ -1626,8 +1624,7 @@ described by FORM is merely identical to the msgstr already in place."
 (defun k-po-kill-ring-save-msgstr ()
   "Push the msgstr string from current entry on the kill ring."
   (interactive)
-  (k-po-find-span-of-entry)
-  (let ((string (k-po-get-msgstr-form)))
+  (let ((string (k-po-entry-msgstr (k-po-current-entry))))
     (kill-new string)
     string))
 
