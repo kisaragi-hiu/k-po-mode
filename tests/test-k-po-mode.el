@@ -1,10 +1,10 @@
 ;; -*- mode: lisp-interaction; lexical-binding: t; -*-
 
-(require 'pkgname)
+(require 'k-po-mode)
 (require 'buttercup)
 
 (describe "hello"
   (it "says hello"
-    (expect (pkgname-hello-world)
+    (expect (k-po-mode-hello-world)
             :to-equal
             "Hello world!")))
