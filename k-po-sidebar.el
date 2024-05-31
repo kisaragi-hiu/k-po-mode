@@ -13,6 +13,8 @@
 (require 'k-po-memory)
 
 (declare-function k-po-current-entry "k-po-mode")
+(declare-function k-po-set-msgstr-form "k-po-mode")
+(declare-function k-po-jump-to-entry "k-po-mode")
 
 (defcustom k-po-sidebar-position 'right
   "Where the data sidebar should be placed.
@@ -92,11 +94,10 @@ Has an effect if and only if `k-po-sidebar-position' is `top' or `bottom'."
 SOURCE-BUFFER is the PO file buffer."
   (with-current-buffer k-po-sidebar-buffer-name
     (let ((inhibit-read-only t)
-          msgid msgstr)
+          msgid)
       (with-current-buffer source-buffer
         (let ((entry (k-po-current-entry)))
-          (setq msgid (k-po-entry-msgid entry))
-          (setq msgstr (k-po-entry-msgstr entry))))
+          (setq msgid (k-po-entry-msgid entry))))
       (erase-buffer)
       ;; TODO: show file stats when in header
       ;; Root section
@@ -105,35 +106,37 @@ SOURCE-BUFFER is the PO file buffer."
           (magit-insert-heading "Translation Memory")
           (magit-insert-section-body
             (insert "\n")
-            (pcase-dolist (`(,source ,target ,count)
-                           (k-po-memory-get msgid))
-              (magit-insert-section (magit-section)
-                (magit-insert-heading
-                  (propertize
-                   (format "(%sx) %s"
-                           count
-                           target)
-                   'face '(bold variable-pitch)))
-                (magit-insert-section-body
-                  (insert-text-button
-                   "Replace"
-                   'face 'button
-                   'action (lambda (&rest _)
-                             (with-current-buffer source-buffer
-                               (k-po-set-msgstr-form target))))
-                  (let ((files (remove (buffer-file-name source-buffer)
-                                       (k-po-memory--get-files source target))))
-                    (when files
-                      (insert "\n")
+            (let ((mapping (k-po-memory-get msgid)))
+              (if (not mapping)
+                  (insert (propertize "None" 'face '(variable-pitch italic)))
+                (pcase-dolist (`(,source ,target ,count) mapping)
+                  (magit-insert-section (magit-section)
+                    (magit-insert-heading
+                      (propertize
+                       (format "(%sx) %s"
+                               count
+                               target)
+                       'face '(bold variable-pitch)))
+                    (magit-insert-section-body
                       (insert-text-button
-                       "Visit file"
+                       "Replace"
                        'face 'button
                        'action (lambda (&rest _)
-                                 (if (= 1 (length files))
-                                     (find-file (car files))
-                                   (find-file (completing-read "Which file: " files)))
-                                 (k-po-jump-to-entry source target)))))
-                  (insert "\n\n"))))))))))
+                                 (with-current-buffer source-buffer
+                                   (k-po-set-msgstr-form target))))
+                      (let ((files (remove (buffer-file-name source-buffer)
+                                           (k-po-memory--get-files source target))))
+                        (when files
+                          (insert "\n")
+                          (insert-text-button
+                           "Visit file"
+                           'face 'button
+                           'action (lambda (&rest _)
+                                     (if (= 1 (length files))
+                                         (find-file (car files))
+                                       (find-file (completing-read "Which file: " files)))
+                                     (k-po-jump-to-entry source target)))))
+                      (insert "\n\n"))))))))))))
 
 (defun k-po-sidebar--post-command-h ()
   "Hook function for updating the sidebar buffer in `post-command-hook'."
