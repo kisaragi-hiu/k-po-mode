@@ -77,6 +77,11 @@ Returns one of \"msgstr\" or \"msgstr[i]\" for some i."
             (buffer-string))
         ""))))
 
+(defun k-po-entry-header? (entry)
+  "Return whether ENTRY is the header entry."
+  (or (eql 1 (k-po-entry-start entry))
+      (equal "" (k-po-entry-msgid entry))))
+
 (provide 'k-po-entry)
 
 ;;; k-po-entry.el ends here

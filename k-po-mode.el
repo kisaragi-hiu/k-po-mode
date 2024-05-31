@@ -37,6 +37,7 @@
 (require 'k-po-extract)
 (require 'k-po-entry)
 (require 'k-po-sidebar)
+(require 'k-po-memory)
 
 
 ;;; Emacs portability matters - part I.
@@ -876,6 +877,12 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
 
   (k-po-check-file-header)
   (k-po-compute-counters nil)
+  (k-po-memory--with-transaction
+    (k-po-map-entries
+     (lambda (entry)
+       (unless (k-po-entry-header? entry)
+         (k-po-memory-insert-entry entry (buffer-file-name))))
+     (make-progress-reporter "Inserting translation memory..." 1 (point-max))))
 
   (setq-local k-po-edited-fields nil)
   (setq-local k-po-marker-stack nil)
@@ -956,15 +963,22 @@ Then, update the mode line counters."
 (defvar k-po-fuzzy-regexp)
 (defvar k-po-untranslated-regexp)
 
-(defun k-po-map-entries (func)
-  "Call FUNC for each entry in the buffer."
+(defun k-po-map-entries (func &optional reporter)
+  "Call FUNC for each entry in the buffer.
+If REPORTER is non-nil, it is ticked using
+`progress-reporter-update' with the point position after each
+iteration, and finalized using `progress-reporter-done' afterwards."
   (save-excursion
     (goto-char (point-min))
     (funcall func (k-po-current-entry))
     (when (re-search-forward "^msgid" nil t)
       (while (and (re-search-forward k-po-any-msgstr-block-regexp nil t)
                   (not (eobp)))
-        (funcall func (k-po-current-entry))))))
+        (funcall func (k-po-current-entry))
+        (when reporter
+          (progress-reporter-update reporter (point))))
+      (when reporter
+        (progress-reporter-done reporter)))))
 
 (defun k-po-compute-counters (echo)
   "Prepare counters for mode line display.  If ECHO, also echo entry position."

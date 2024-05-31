@@ -39,7 +39,7 @@ To read this value, use `k-po-memory--db' instead.")
   "Run BODY in a transaction for the `k-po-memory' database.
 Also sets `k-po-memory--in-transaction'."
   (declare (indent 0))
-  `(with-sqlite-transaction (canrylog-db)
+  `(with-sqlite-transaction (k-po-memory--db)
      (let ((k-po-memory--in-transaction t))
        ,@body)))
 

@@ -94,6 +94,7 @@ SOURCE-BUFFER is the PO file buffer."
           (setq msgid (k-po-entry-msgid entry))
           (setq msgstr (k-po-entry-msgstr entry))))
       (erase-buffer)
+      ;; TODO: show file stats when in header
       ;; Root section
       (magit-insert-section (magit-section)
         (magit-insert-section (magit-section)
