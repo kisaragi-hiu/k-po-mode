@@ -54,7 +54,7 @@ Returns one of \"msgstr\" or \"msgstr[i]\" for some i."
     (re-search-forward "^\\(#~[ \t]*\\)?\\(msgstr\\(\\[[0-9]\\]\\)?\\)")
     (match-string 2)))
 
-(defun k-po-entry-msgstr-form (entry)
+(defun k-po-entry-msgstr (entry)
   "Extract and return the unquoted msgstr string for ENTRY."
   (k-po-extract-unquoted (current-buffer)
                          (k-po-entry-msgstr-form-start entry)
