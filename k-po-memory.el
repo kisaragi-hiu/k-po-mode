@@ -156,6 +156,34 @@ for each column."
          (k-po-memory-insert-entry entry (buffer-file-name))))
      (make-progress-reporter "Inserting translation memory..." 1 (point-max)))))
 
+(defun k-po-memory--insert-file (file)
+  "Insert every entry within FILE into the translation memory."
+  (with-temp-buffer
+    (insert-file-contents file)
+    ;; Many functions rely on this to get the current file name
+    (setq buffer-file-name (file-truename file))
+    (unwind-protect
+        (let ((inhibit-message t))
+          (k-po-memory--insert-current-file))
+      ;; Do not ever ask me to save the temporary buffer
+      (setq buffer-file-name nil))))
+
+(defun k-po-memory-insert-dir (dir)
+  "Insert every .po file within DIR into the translation memory."
+  (interactive "DPO Directory: ")
+  (message "Retrieving files...")
+  (let* ((files (directory-files-recursively dir (rx ".po" eos) nil nil t))
+         (i 0)
+         (total (length files)))
+    (message "Collecting translation memory...")
+    (dolist (file files)
+      (cl-incf i)
+      (k-po-memory--insert-file file)
+      (message "Collecting translation memory (%s/%s)... (%s)"
+               i total
+               (file-relative-name file dir)))
+    (message "Collecting translation memory...done")))
+
 (defun k-po-memory-clear ()
   "Clear the translation memory."
   (interactive)
