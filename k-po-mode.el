@@ -975,33 +975,31 @@ Then, update the mode line counters."
       (k-po-find-span-of-entry)
       (if (string-equal (k-po-get-msgid) "")
           (goto-char k-po-end-of-entry))
-      (if (re-search-forward "^msgid" (point-max) t)
-          (progn
-            ;; Start counting
-            (while (re-search-forward k-po-any-msgstr-block-regexp nil t)
-              (and (= (% total 20) 0)
-                   (if echo
-                       (message "Position %d/%d" position total)
-                     (message "Position %d" total)))
-              (setq here (point))
-              (goto-char (match-beginning 0))
-              (setq total (1+ total))
-              (and echo (eq (point) current) (setq position total))
-              (cond ((eq (following-char) ?#)
-                     (setq k-po-obsolete-counter (1+ k-po-obsolete-counter)))
-                    ((looking-at k-po-untranslated-regexp)
-                     (setq k-po-untranslated-counter (1+ k-po-untranslated-counter)))
-                    (t (setq k-po-translated-counter (1+ k-po-translated-counter))))
-              (goto-char here))
+      (when (re-search-forward "^msgid" (point-max) t)
+        ;; Start counting
+        (while (re-search-forward k-po-any-msgstr-block-regexp nil t)
+          (and (= (% total 20) 0)
+               (if echo
+                   (message "Position %d/%d" position total)
+                 (message "Position %d" total)))
+          (setq here (point))
+          (goto-char (match-beginning 0))
+          (setq total (1+ total))
+          (and echo (eq (point) current) (setq position total))
+          (cond ((eq (following-char) ?#)
+                 (setq k-po-obsolete-counter (1+ k-po-obsolete-counter)))
+                ((looking-at k-po-untranslated-regexp)
+                 (setq k-po-untranslated-counter (1+ k-po-untranslated-counter)))
+                (t (setq k-po-translated-counter (1+ k-po-translated-counter))))
+          (goto-char here))
 
-            ;; Make another pass just for the fuzzy entries, kind of kludgey.
-            ;; FIXME: Counts will be wrong if untranslated entries are fuzzy, yet
-            ;; this should not normally happen.
-            (goto-char (point-min))
-            (while (re-search-forward k-po-fuzzy-regexp nil t)
-              (setq k-po-fuzzy-counter (1+ k-po-fuzzy-counter)))
-            (setq k-po-translated-counter (- k-po-translated-counter k-po-fuzzy-counter)))
-        '()))
+        ;; Make another pass just for the fuzzy entries, kind of kludgey.
+        ;; FIXME: Counts will be wrong if untranslated entries are fuzzy, yet
+        ;; this should not normally happen.
+        (goto-char (point-min))
+        (while (re-search-forward k-po-fuzzy-regexp nil t)
+          (setq k-po-fuzzy-counter (1+ k-po-fuzzy-counter)))
+        (setq k-po-translated-counter (- k-po-translated-counter k-po-fuzzy-counter))))
 
     ;; Push the results out.
     (if echo
