@@ -539,7 +539,7 @@ Moving around             f    F    Fuzzy          ?, h  This help
 >    Last if any          u    U    Untranslated   0     Other window
 /SPC Auto select                                   V     Validate
                           Msgstr Comments          M     Mail officially
-Modifying entries         RET  #    Call editor    _     Undo
+Modifying entries         RET  #    Call editor
 TAB   Remove fuzzy mark   k    K    Kill to        E     Edit out full
 DEL   Fuzzy or fade out   w    W    Copy to        Q     Forceful quit
 LFD   Init with msgid     y    Y    Yank from      q     Confirm and quit
@@ -604,9 +604,6 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
      ["Current index" k-po-statistics
       :help "Statistical info on current translation file"])
     ("Modifying entries"
-     ["Undo" k-po-undo
-      :help "Revoke last changed entry"]
-     "---"
      ;; "Msgstr"
      ["Edit msgstr" k-po-edit-msgstr
       :help "Edit current translation"]
@@ -839,9 +836,6 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
     (define-key k-po-mode-map (kbd "C-c V")     #'k-po-validate)
     (define-key k-po-mode-map (kbd "C-c W")     #'k-po-kill-ring-save-comment)
     (define-key k-po-mode-map (kbd "C-c Y")     #'k-po-yank-comment)
-    (define-key k-po-mode-map (kbd "C-c _")     #'k-po-undo)
-    (define-key k-po-mode-map (kbd "C-c C-_")   #'k-po-undo)
-    (define-key k-po-mode-map (kbd "C-c C-x u") #'k-po-undo)
     (define-key k-po-mode-map (kbd "C-c 0")     #'k-po-other-window)
     (define-key k-po-mode-map (kbd "C-c DEL")   #'k-po-fade-out-entry)
     (define-key k-po-mode-map (kbd "C-c C-a")   #'k-po-select-auxiliary)
@@ -2937,12 +2931,6 @@ Leave point after marked string."
              (insert keyword "(")))))
 
 ;;; Miscellaneous features.
-
-(defun k-po-undo ()
-  "Undo the last change to the PO file."
-  (interactive)
-  (undo)
-  (k-po-compute-counters nil))
 
 (defun k-po-statistics ()
   "Say how many entries in each category, and the current position."
