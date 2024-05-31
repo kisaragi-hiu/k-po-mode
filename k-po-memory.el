@@ -13,6 +13,7 @@
 
 ;; FIXME: the dependency graph needs fixing
 (declare-function k-po-current-entry "k-po-mode")
+(declare-function k-po-map-entries "k-po-mode")
 
 (defun k-po-memory--file ()
   "Return the path to the DB file."
@@ -142,11 +143,20 @@ for each column."
    (k-po-entry-msgstr entry)
    file))
 
-(defun k-po-memory-insert-current-entry ()
-  "Insert the source and target text of the entry at point into the memory."
-  (k-po-memory-insert-entry
-   (k-po-current-entry)
-   (buffer-file-name)))
+(defun k-po-memory--insert-current-file ()
+  "Insert every entry from the current file into the translation memory."
+  (k-po-memory--with-transaction
+    (k-po-map-entries
+     (lambda (entry)
+       (when (and (not (k-po-entry-header? entry))
+                  (k-po-entry-type? entry 'translated))
+         (k-po-memory-insert-entry entry (buffer-file-name))))
+     (make-progress-reporter "Inserting translation memory..." 1 (point-max)))))
+
+(defun k-po-memory-clear ()
+  "Clear the translation memory."
+  (interactive)
+  (k-po-memory--execute "delete from mapping"))
 
 (provide 'k-po-memory)
 

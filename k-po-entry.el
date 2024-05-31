@@ -17,7 +17,7 @@
   end
   (type nil :documentation "The type of an entry.
 
-Possible values: `obsolete', `fuzzy', `untranslated', or `translated'"))
+Possible values: `obsolete', `fuzzy', `untranslated', or `translated'."))
 
 (defun k-po--entry-from-vars ()
   "Return a `k-po-entry' from the variables set by `k-po-find-span-of-entry'."
@@ -81,6 +81,11 @@ Returns one of \"msgstr\" or \"msgstr[i]\" for some i."
   "Return whether ENTRY is the header entry."
   (or (eql 1 (k-po-entry-start entry))
       (equal "" (k-po-entry-msgid entry))))
+
+(defun k-po-entry-type? (entry type)
+  "Return whether ENTRY is of TYPE.
+TYPE can be `obsolete', `fuzzy', `untranslated', or `translated'."
+  (eq (k-po-entry-type entry) type))
 
 (provide 'k-po-entry)
 
