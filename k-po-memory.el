@@ -146,6 +146,9 @@ for each column."
 (defun k-po-memory--insert-current-file ()
   "Insert every entry from the current file into the translation memory."
   (k-po-memory--with-transaction
+    (k-po-memory--execute
+     "delete from mapping where file = ?"
+     (buffer-file-name))
     (k-po-map-entries
      (lambda (entry)
        (when (and (not (k-po-entry-header? entry))
@@ -157,6 +160,39 @@ for each column."
   "Clear the translation memory."
   (interactive)
   (k-po-memory--execute "delete from mapping"))
+
+(defun k-po-memory--sort-rows (rows)
+  "Sort ROWS appropriately."
+  (sort rows (lambda (a b)
+               (> (elt a 2)
+                  (elt b 2)))))
+
+(defun k-po-memory-get (msgid)
+  "Return the target texts for MSGID.
+The value is a list of rows, where each row is (SOURCE TARGET COUNT)."
+  (k-po-memory--sort-rows
+   (k-po-memory--select
+    "SELECT source, target, count(target)
+FROM mapping
+GROUP BY target HAVING source = ?"
+    msgid)))
+
+(defun k-po-memory-get-prefix (prefix)
+  "Return the target texts whose source text starts with PREFIX.
+The value is a list of rows, where each row is (SOURCE TARGET COUNT)."
+  (k-po-memory--sort-rows
+   (k-po-memory--select
+    "SELECT source, target, count(target)
+FROM mapping
+GROUP BY target HAVING instr(source, ?) = 1"
+    prefix)))
+
+(defun k-po-memory--get-files (source target)
+  "Return the files who have mapped SOURCE to TARGET."
+  (mapcar #'car
+          (k-po-memory--select
+           "SELECT DISTINCT file FROM mapping WHERE source = ? AND target = ?"
+           source target)))
 
 (provide 'k-po-memory)
 

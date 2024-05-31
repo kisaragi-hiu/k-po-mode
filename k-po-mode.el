@@ -1355,6 +1355,19 @@ If WRAP is not nil, the search may wrap around the buffer."
 
 ;; Any entries.
 
+(defun k-po-jump-to-entry (source target)
+  "Jump to the entry whose msgid is SOURCE and msgstr is TARGET."
+  (let ((found
+         (catch 'found
+           (k-po-map-entries
+            (lambda (entry)
+              (when (and (equal source (k-po-entry-msgid entry))
+                         (equal target (k-po-entry-msgstr entry)))
+                (throw 'found (point)))))
+           ;; If we reach this point, we haven't found it.
+           nil)))
+    (when found (goto-char found))))
+
 (defun k-po-first-entry ()
   "Display the first entry."
   (interactive)
