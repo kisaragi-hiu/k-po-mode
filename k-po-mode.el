@@ -961,11 +961,13 @@ Then, update the mode line counters."
         k-po-fuzzy-counter 0
         k-po-untranslated-counter 0
         k-po-obsolete-counter 0)
-  (let ((position 0) (total 0) current here)
+  (let ((position 0) (total 0) current here this-entry)
     ;; FIXME 'here' looks obsolete / 2001-08-23 03:54:26 CEST -ke-
     (save-excursion
       (k-po-find-span-of-entry)
       (setq current k-po-start-of-msgstr-block)
+      ;; New entry-object-based extraction
+      (setq this-entry (k-po--entry-from-vars))
       (goto-char (point-min))
       ;; While counting, skip the header entry, for consistency with msgfmt.
       (k-po-find-span-of-entry)
