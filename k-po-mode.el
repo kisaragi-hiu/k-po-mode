@@ -594,7 +594,7 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
      ["Exchange current/top" k-po-exchange-location
       :help "Jump to last remembered location and remember current location"]
      "---"
-     ["Redisplay" k-po-current-entry
+     ["Redisplay" k-po-display-current-entry
       :help "Make current entry properly visible"]
      ["Current index" k-po-statistics
       :help "Statistical info on current translation file"])
@@ -799,7 +799,7 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
     (define-key k-po-mode-map (kbd "C-c SPC")   #'k-po-auto-select-entry)
     (define-key k-po-mode-map (kbd "C-c #")     #'k-po-edit-comment)
     (define-key k-po-mode-map (kbd "C-c ,")     #'k-po-tags-search)
-    (define-key k-po-mode-map (kbd "C-c .")     #'k-po-current-entry)
+    (define-key k-po-mode-map (kbd "C-c .")     #'k-po-display-current-entry)
     (define-key k-po-mode-map (kbd "C-c <")     #'k-po-first-entry)
     (define-key k-po-mode-map (kbd "C-c =")     #'k-po-statistics)
     (define-key k-po-mode-map (kbd "C-c >")     #'k-po-last-entry)
@@ -1094,6 +1094,7 @@ Can be customized with the `k-po-auto-update-file-header' variable."
 
 ;;; Handling span of entry, entry type and entry attributes.
 
+;; TODO: Return an entry object, not this.
 (defun k-po-find-span-of-entry ()
   "Find the extent of the PO file entry where the cursor is.
 Set variables k-po-start-of-entry, k-po-start-of-msgctxt, k-po-start-of-msgid,
@@ -1242,7 +1243,7 @@ fuzzy, untranslated, or translated."
       (progn
         (goto-char (car k-po-marker-stack))
         (setq k-po-marker-stack (cdr k-po-marker-stack))
-        (k-po-current-entry)
+        (k-po-display-current-entry)
         (k-po-say-location-depth))
     (error "The entry location stack is empty")))
 
@@ -1256,11 +1257,11 @@ fuzzy, untranslated, or translated."
         (let ((location (point-marker)))
           (goto-char (car k-po-marker-stack))
           (setq k-po-marker-stack (cons location (cdr k-po-marker-stack))))
-        (k-po-current-entry)
+        (k-po-display-current-entry)
         (k-po-say-location-depth))
     (error "The entry location stack is empty")))
 
-(defun k-po-current-entry ()
+(defun k-po-display-current-entry ()
   "Display the current entry."
   (interactive)
   (k-po-find-span-of-entry)
@@ -1273,7 +1274,7 @@ fuzzy, untranslated, or translated."
     (if (re-search-forward regexp nil t)
         (progn
           (goto-char (match-beginning 0))
-          (k-po-current-entry))
+          (k-po-display-current-entry))
       (goto-char here)
       (error "There is no such entry"))))
 
@@ -1282,7 +1283,7 @@ fuzzy, untranslated, or translated."
   (let ((here (point)))
     (goto-char (point-max))
     (if (re-search-backward regexp nil t)
-        (k-po-current-entry)
+        (k-po-display-current-entry)
       (goto-char here)
       (error "There is no such entry"))))
 
@@ -1295,14 +1296,14 @@ If WRAP is not nil, the search may wrap around the buffer."
     (if (re-search-forward regexp nil t)
         (progn
           (goto-char (match-beginning 0))
-          (k-po-current-entry))
+          (k-po-display-current-entry))
       (if (and wrap
                (progn
                  (goto-char (point-min))
                  (re-search-forward regexp k-po-start-of-entry t)))
           (progn
             (goto-char (match-beginning 0))
-            (k-po-current-entry)
+            (k-po-display-current-entry)
             (message "Wrapping around the buffer"))
         (goto-char here)
         (error "There is no such entry")))))
@@ -1314,13 +1315,13 @@ If WRAP is not nil, the search may wrap around the buffer."
   (let ((here (point)))
     (goto-char k-po-start-of-entry)
     (if (re-search-backward regexp nil t)
-        (k-po-current-entry)
+        (k-po-display-current-entry)
       (if (and wrap
                (progn
                  (goto-char (point-max))
                  (re-search-backward regexp k-po-end-of-entry t)))
           (progn
-            (k-po-current-entry)
+            (k-po-display-current-entry)
             (message "Wrapping around the buffer"))
         (goto-char here)
         (error "There is no such entry")))))
@@ -1429,7 +1430,7 @@ exactly.")
          (k-po-decrease-type-counter)
          (k-po-delete-attribute "fuzzy")
          (k-po-maybe-delete-previous-untranslated)
-         (k-po-current-entry)
+         (k-po-display-current-entry)
          (k-po-increase-type-counter)))
   (if k-po-auto-select-on-unfuzzy
       (k-po-auto-select-entry))
@@ -1512,7 +1513,7 @@ no entries of the other types."
               (goto-char (point-min))
               (setq goal 'untranslated))))))
   ;; Display this entry nicely.
-  (k-po-current-entry))
+  (k-po-display-current-entry))
 
 ;;; Killing and yanking fields.
 
@@ -1709,7 +1710,7 @@ or completely delete an obsolete entry, saving its msgstr on the kill ring."
   (cond ((eq k-po-entry-type 'translated)
          (k-po-decrease-type-counter)
          (k-po-add-attribute "fuzzy")
-         (k-po-current-entry)
+         (k-po-display-current-entry)
          (k-po-increase-type-counter))
 
         ((or (eq k-po-entry-type 'fuzzy)
@@ -1725,7 +1726,7 @@ or completely delete an obsolete entry, saving its msgstr on the kill ring."
                    (while (not (eobp))
                      (insert "#~ ")
                      (search-forward "\n"))))
-               (k-po-current-entry)
+               (k-po-display-current-entry)
                (k-po-increase-type-counter)))
          (message ""))
 
@@ -1741,7 +1742,7 @@ or completely delete an obsolete entry, saving its msgstr on the kill ring."
          (if (re-search-forward k-po-any-msgstr-block-regexp nil t)
              (goto-char (match-beginning 0))
            (re-search-backward k-po-any-msgstr-block-regexp nil t))
-         (k-po-current-entry)
+         (k-po-display-current-entry)
          (message ""))))
 
 ;;; Killing and yanking comments.
@@ -1794,7 +1795,7 @@ The string is properly recommented before the replacement occurs."
             (replace-match string t t))
       (skip-chars-forward " \t\n")
       (insert string)))
-  (k-po-current-entry))
+  (k-po-display-current-entry))
 
 (defun k-po-kill-ring-save-comment ()
   "Push the msgstr string from current entry on the kill ring."
@@ -2051,7 +2052,7 @@ the ediff control panel."
                  (progn
                    (k-po-decrease-type-counter)
                    (k-po-add-attribute "fuzzy")
-                   (k-po-current-entry)
+                   (k-po-display-current-entry)
                    (k-po-increase-type-counter)))))
           (t (debug)))))
 
