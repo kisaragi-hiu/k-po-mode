@@ -113,7 +113,9 @@ for each column."
            db
            (format "CREATE TABLE \"%s\" (%s);"
                    tbl
-                   (string-join schemata ","))))))
+                   (string-join schemata ",")))))
+      ;; Index
+      (sqlite-execute db "CREATE INDEX idx_mapping_source ON mapping(source);"))
     (let ((current-version (caar (sqlite-select db "pragma user_version"))))
       (unless (eql current-version k-po-memory--version)
         (message
@@ -189,30 +191,43 @@ for each column."
   (interactive)
   (k-po-memory--execute "delete from mapping"))
 
-(defun k-po-memory--sort-rows (rows)
-  "Sort ROWS appropriately."
-  (sort rows (lambda (a b)
-               (> (elt a 2)
-                  (elt b 2)))))
+;; We do the counting in Emacs Lisp because we need to use WHERE to take
+;; advantage of the index. Using the count aggregate function, GROUP BY, and
+;; HAVING seems to make it necessary for SQLite to scan through every row.
+(defun k-po-memory--rows-count-group (rows)
+  "Group ROWS by count, and sort appropriately."
+  (let ((table (make-hash-table :test #'equal))
+        ret)
+    (pcase-dolist (row rows)
+      (if (gethash row table)
+          (cl-incf (gethash row table))
+        (puthash row 1 table)))
+    (maphash
+     (lambda (row count)
+       (push (list (car row) (cadr row) count) ret))
+     table)
+    (sort ret (lambda (a b)
+                (> (elt a 2)
+                   (elt b 2))))))
 
 (defun k-po-memory-get (msgid)
   "Return the target texts for MSGID.
 The value is a list of rows, where each row is (SOURCE TARGET COUNT)."
-  (k-po-memory--sort-rows
+  (k-po-memory--rows-count-group
    (k-po-memory--select
-    "SELECT source, target, count(target)
+    "SELECT source, target
 FROM mapping
-GROUP BY target HAVING source = ?"
+WHERE source = ?"
     msgid)))
 
 (defun k-po-memory-get-prefix (prefix)
   "Return the target texts whose source text starts with PREFIX.
 The value is a list of rows, where each row is (SOURCE TARGET COUNT)."
-  (k-po-memory--sort-rows
+  (k-po-memory--rows-count-group
    (k-po-memory--select
-    "SELECT source, target, count(target)
+    "SELECT source, target
 FROM mapping
-GROUP BY target HAVING instr(source, ?) = 1"
+WHERE instr(source, ?) = 1"
     prefix)))
 
 (defun k-po-memory--get-files (source target)
