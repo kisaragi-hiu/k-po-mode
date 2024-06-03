@@ -316,19 +316,6 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
     ("\\\\.\\|%[$-.0-9hjltuzL]*[a-zA-Z]" . font-lock-variable-name-face))
   "Additional expressions to highlight in PO mode.")
 
-;; Old activator for 'font lock'.  Is it still useful?  I don't think so.
-;;(if (boundp 'font-lock-keywords)
-;;    (put 'k-po-mode 'font-lock-keywords 'k-po-font-lock-keywords))
-
-;; 'hilit19' based highlighting code has been disabled, as most probably
-;; nobody really needs it (it also generates ugly byte-compiler warnings).
-;;
-;;(if (fboundp 'hilit-set-mode-patterns)
-;;    (hilit-set-mode-patterns 'k-po-mode
-;;                             '(("^# .*\\|^#$" nil comment)
-;;                               ("^#[.,:].*" nil include)
-;;                               ("^\\(msgid\\|msgstr\\) *\"" nil keyword)
-;;                               ("^\"\\|\"$" nil keyword))))
 
 ;;; Mode activation.
 
