@@ -63,7 +63,7 @@ Returns one of \"msgstr\" or \"msgstr[i]\" for some i."
 (defun k-po-entry-comment (entry)
   "Return the editable comment of ENTRY in the uncommented form."
   (let ((buffer (current-buffer))
-        (obsolete (eq (k-po-entry-type entry) 'obsolete)))
+        (obsolete (k-po-entry-type? entry 'obsolete)))
     (save-excursion
       (goto-char (k-po-entry-start entry))
       (if (re-search-forward k-po-comment-regexp (k-po-entry-end entry) t)

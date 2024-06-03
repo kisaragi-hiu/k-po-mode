@@ -1653,14 +1653,15 @@ ENTRY defaults to the current entry."
 (defun k-po-yank-msgstr ()
   "Replace the current msgstr string by the top of the kill ring."
   (interactive)
-  (k-po-find-span-of-entry)
-  (when (k-po-set-msgstr-form
-         (lambda ()
-           (if (eq last-command 'yank)
-               (yank-pop 1)
-             (yank))))
-    (k-po-maybe-delete-previous-untranslated))
-  (setq this-command 'yank))
+  (let ((entry (k-po-current-entry)))
+    (when (k-po-set-msgstr-form
+           (lambda ()
+             (if (eq last-command 'yank)
+                 (yank-pop 1)
+               (yank)))
+           entry)
+      (k-po-maybe-delete-previous-untranslated))
+    (setq this-command 'yank)))
 
 (defun k-po-fade-out-entry ()
   "Mark an active entry as fuzzy; obsolete a fuzzy or untranslated entry;
@@ -1715,6 +1716,7 @@ or completely delete an obsolete entry, saving its msgstr on the kill ring."
 (defun k-po-get-comment (kill-flag)
   "Extract and return the editable comment string, uncommented.
 If KILL-FLAG, then add the unquoted comment to the kill ring."
+  (declare (obsolete k-po-entry-comment "2024-06-04"))
   (let ((buffer (current-buffer))
         (obsolete (eq k-po-entry-type 'obsolete)))
     (save-excursion
@@ -1761,8 +1763,9 @@ The string is properly recommented before the replacement occurs."
 (defun k-po-kill-ring-save-comment ()
   "Push the msgstr string from current entry on the kill ring."
   (interactive)
-  (k-po-find-span-of-entry)
-  (k-po-get-comment t))
+  (kill-new
+   (k-po-entry-comment
+    (k-po-current-entry))))
 
 (defun k-po-kill-comment ()
   "Empty the msgstr string from current entry, pushing it on the kill ring."
@@ -2069,8 +2072,9 @@ Run functions on k-po-subedit-mode-hook."
 (defun k-po-edit-comment ()
   "Use another window to edit the current translator comment."
   (interactive)
-  (k-po-find-span-of-entry)
-  (k-po-edit-string (k-po-get-comment nil) 'comment nil))
+  (k-po-edit-string (k-po-entry-comment (k-po-current-entry))
+                    'comment
+                    nil))
 
 (defun k-po-edit-comment-and-ediff ()
   "Use `ediff' to edit the current translator comment.
