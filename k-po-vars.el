@@ -390,19 +390,99 @@ or remove the -m if you are not using the GNU version of `uuencode'."
   :type 'string
   :group 'k-po)
 
-(defvar k-po-subedit-mode-syntax-table
-  (copy-syntax-table text-mode-syntax-table)
-  "Syntax table used while in PO mode.")
+;;;; Various internal variables and constants
 
-;;; Buffer local variables.
+(defvar k-po-auxiliary-list nil
+  "List of auxiliary PO files, in completing read format.")
 
-;; The following block of declarations has the main purpose of avoiding
-;; byte compiler warnings.  It also introduces some documentation for
-;; each of these variables, all meant to be local to PO mode buffers.
+(defvar k-po-auxiliary-cursor nil
+  "Cursor into the `k-po-auxiliary-list'.")
 
-;; Flag telling that MODE-LINE-STRING should be displayed.  See 'Window'
-;; page below.  Exceptionally, this variable is local to *all* buffers.
-(defvar-local k-po-mode-flag nil)
+(defvar k-po-compose-mail-function
+  (let ((functions '(compose-mail-other-window
+                     message-mail-other-window
+                     compose-mail
+                     message-mail))
+        result)
+    (while (and (not result) functions)
+      (if (fboundp (car functions))
+          (setq result (car functions))
+        (setq functions (cdr functions))))
+    (cond (result)
+          ((fboundp 'mail-other-window)
+           (function (lambda (to subject)
+                       (mail-other-window nil to subject))))
+          ((fboundp 'mail)
+           (function (lambda (to subject)
+                       (mail nil to subject))))
+          (t (function (lambda (to subject)
+                         (error "I do not know how to mail to '%s'" to))))))
+  "Function to start composing an electronic message.")
+
+(defvar k-po-msgfmt-program "msgfmt"
+  "Path to msgfmt program from GNU gettext package.")
+
+;;;;; Regexp constants (?)
+
+(defvar k-po-any-previous-msgctxt-regexp
+  "^#\\(~\\)?|[ \t]*msgctxt.*\n\\(#\\(~\\)?|[ \t]*\".*\n\\)*"
+  "Regexp matching a whole #| msgctxt field, whether obsolete or not.")
+
+(defvar k-po-any-previous-msgid-regexp
+  "^#\\(~\\)?|[ \t]*msgid.*\n\\(#\\(~\\)?|[ \t]*\".*\n\\)*"
+  "Regexp matching a whole #| msgid field, whether obsolete or not.")
+
+(defvar k-po-any-previous-msgid_plural-regexp
+  "^#\\(~\\)?|[ \t]*msgid_plural.*\n\\(#\\(~\\)?|[ \t]*\".*\n\\)*"
+  "Regexp matching a whole #| msgid_plural field, whether obsolete or not.")
+
+(defvar k-po-any-msgctxt-msgid-regexp
+  "^\\(#~[ \t]*\\)?msg\\(ctxt\\|id\\).*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*"
+  "Regexp matching a whole msgctxt or msgid field, whether obsolete or not.")
+
+(defvar k-po-any-msgid-regexp
+  "^\\(#~[ \t]*\\)?msgid.*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*"
+  "Regexp matching a whole msgid field, whether obsolete or not.")
+
+(defvar k-po-any-msgid_plural-regexp
+  "^\\(#~[ \t]*\\)?msgid_plural.*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*"
+  "Regexp matching a whole msgid_plural field, whether obsolete or not.")
+
+(defvar k-po-any-msgstr-block-regexp
+  "^\\(#~[ \t]*\\)?msgstr\\([ \t]\\|\\[0\\]\\).*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*\\(\\(#~[ \t]*\\)?msgstr\\[[0-9]\\].*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*\\)*"
+  "Regexp matching a whole msgstr or msgstr[] field, whether obsolete or not.")
+
+(defvar k-po-any-msgstr-form-regexp
+  ;; "^\\(#~[ \t]*\\)?msgstr.*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*"
+  "^\\(#~[ \t]*\\)?msgstr\\(\\[[0-9]\\]\\)?.*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*"
+  "Regexp matching just one msgstr or msgstr[] field, whether obsolete or not.")
+
+(defvar k-po-msgstr-idx-keyword-regexp
+  "^\\(#~[ \t]*\\)?msgstr\\[[0-9]\\]"
+  "Regexp matching an indexed msgstr keyword, whether obsolete or not.")
+
+(defvar k-po-comment-regexp
+  "^\\(#\n\\|# .*\n\\)+"
+  "Regexp matching the whole editable comment part of an entry.")
+
+(defvar k-po-fuzzy-regexp "^#, .*fuzzy"
+  "Regexp matching the fuzzy marker.
+It is inserted by msgmerge for translations which does not match
+exactly.")
+
+(defvar k-po-after-entry-regexp
+  "\\(\\'\\|\\(#[ \t]*\\)?$\\)"
+  "Regexp which should be true after a full msgstr string matched.")
+
+(defvar k-po-untranslated-regexp
+  (concat "^msgstr\\(\\[[0-9]\\]\\)?[ \t]*\"\"\n" k-po-after-entry-regexp)
+  "Regexp matching a whole msgstr field, but only if active and empty.")
+
+(defvar k-po-obsolete-msgstr-regexp
+  "^#~[ \t]*msgstr.*\n\\(#~[ \t]*\".*\n\\)*"
+  "Regexp matching a whole msgstr field of an obsolete entry.")
+
+;;;; Buffer local variables
 
 ;; The current entry extends from START-OF-ENTRY to END-OF-ENTRY, it
 ;; includes preceding whitespace and excludes following whitespace.  The

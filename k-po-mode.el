@@ -222,6 +222,9 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
      ["Soft quit" k-po-confirm-and-quit
       :help "Save current translation file, than close (kill) it"])))
 
+(defvar k-po-subedit-mode-syntax-table
+  (copy-syntax-table text-mode-syntax-table)
+  "Syntax table used while in PO mode.")
 
 (defconst k-po-subedit-mode-menu-layout
   `("PO-Edit"
@@ -237,73 +240,6 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
 (defconst k-po-subedit-message
   "Type \\[k-po-subedit-exit] once done, or \\[k-po-subedit-abort] to abort edit"
   "Message to post in the minibuffer when an edit buffer is displayed.")
-
-(defvar k-po-auxiliary-list nil
-  "List of auxiliary PO files, in completing read format.")
-
-(defvar k-po-auxiliary-cursor nil
-  "Cursor into the `k-po-auxiliary-list'.")
-
-(defvar k-po-compose-mail-function
-  (let ((functions '(compose-mail-other-window
-                     message-mail-other-window
-                     compose-mail
-                     message-mail))
-        result)
-    (while (and (not result) functions)
-      (if (fboundp (car functions))
-          (setq result (car functions))
-        (setq functions (cdr functions))))
-    (cond (result)
-          ((fboundp 'mail-other-window)
-           (function (lambda (to subject)
-                       (mail-other-window nil to subject))))
-          ((fboundp 'mail)
-           (function (lambda (to subject)
-                       (mail nil to subject))))
-          (t (function (lambda (to subject)
-                         (error "I do not know how to mail to '%s'" to))))))
-  "Function to start composing an electronic message.")
-
-(defvar k-po-any-previous-msgctxt-regexp
-  "^#\\(~\\)?|[ \t]*msgctxt.*\n\\(#\\(~\\)?|[ \t]*\".*\n\\)*"
-  "Regexp matching a whole #| msgctxt field, whether obsolete or not.")
-
-(defvar k-po-any-previous-msgid-regexp
-  "^#\\(~\\)?|[ \t]*msgid.*\n\\(#\\(~\\)?|[ \t]*\".*\n\\)*"
-  "Regexp matching a whole #| msgid field, whether obsolete or not.")
-
-(defvar k-po-any-previous-msgid_plural-regexp
-  "^#\\(~\\)?|[ \t]*msgid_plural.*\n\\(#\\(~\\)?|[ \t]*\".*\n\\)*"
-  "Regexp matching a whole #| msgid_plural field, whether obsolete or not.")
-
-(defvar k-po-any-msgctxt-msgid-regexp
-  "^\\(#~[ \t]*\\)?msg\\(ctxt\\|id\\).*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*"
-  "Regexp matching a whole msgctxt or msgid field, whether obsolete or not.")
-
-(defvar k-po-any-msgid-regexp
-  "^\\(#~[ \t]*\\)?msgid.*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*"
-  "Regexp matching a whole msgid field, whether obsolete or not.")
-
-(defvar k-po-any-msgid_plural-regexp
-  "^\\(#~[ \t]*\\)?msgid_plural.*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*"
-  "Regexp matching a whole msgid_plural field, whether obsolete or not.")
-
-(defvar k-po-any-msgstr-block-regexp
-  "^\\(#~[ \t]*\\)?msgstr\\([ \t]\\|\\[0\\]\\).*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*\\(\\(#~[ \t]*\\)?msgstr\\[[0-9]\\].*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*\\)*"
-  "Regexp matching a whole msgstr or msgstr[] field, whether obsolete or not.")
-
-(defvar k-po-any-msgstr-form-regexp
-  ;; "^\\(#~[ \t]*\\)?msgstr.*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*"
-  "^\\(#~[ \t]*\\)?msgstr\\(\\[[0-9]\\]\\)?.*\n\\(\\(#~[ \t]*\\)?\".*\n\\)*"
-  "Regexp matching just one msgstr or msgstr[] field, whether obsolete or not.")
-
-(defvar k-po-msgstr-idx-keyword-regexp
-  "^\\(#~[ \t]*\\)?msgstr\\[[0-9]\\]"
-  "Regexp matching an indexed msgstr keyword, whether obsolete or not.")
-
-(defvar k-po-msgfmt-program "msgfmt"
-  "Path to msgfmt program from GNU gettext package.")
 
 ;; Font lock based highlighting code.
 (defconst k-po-font-lock-keywords
@@ -397,7 +333,7 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
     (easy-menu-define k-po-mode-menu k-po-mode-map "" k-po-mode-menu-layout))
   (setq-local font-lock-defaults '(k-po-font-lock-keywords t))
 
-  (setq k-po-mode-flag t)
+  (setq-local k-po-mode-flag t)
 
   (k-po-check-file-header)
   (k-po-compute-counters nil)
@@ -434,17 +370,20 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
 
 ;;; Window management.
 
+(defvar-local k-po-mode-flag nil
+  "Non-nil means that MODE-LINE-STRING should be displayed.")
+
 (defvar k-po-mode-line-entry '(k-po-mode-flag ("  " k-po-mode-line-string))
   "Mode line format entry displaying MODE-LINE-STRING.")
 
 ;; Insert MODE-LINE-ENTRY in mode line, but on first load only.
-(or (member k-po-mode-line-entry mode-line-format)
-    ;; mode-line-format usually contains global-mode-string, but some
-    ;; people customize this variable. As a last resort, append at the end.
-    (let ((prev-entry (or (member 'global-mode-string mode-line-format)
-                          (member "   " mode-line-format)
-                          (last mode-line-format))))
-      (setcdr prev-entry (cons k-po-mode-line-entry (cdr prev-entry)))))
+(unless (member k-po-mode-line-entry mode-line-format)
+  ;; mode-line-format usually contains global-mode-string, but some
+  ;; people customize this variable. As a last resort, append at the end.
+  (let ((prev-entry (or (member 'global-mode-string mode-line-format)
+                        (member "   " mode-line-format)
+                        (last mode-line-format))))
+    (setcdr prev-entry (cons k-po-mode-line-entry (cdr prev-entry)))))
 
 (defun k-po-update-mode-line-string ()
   "Compute a new statistics string to display in mode line."
@@ -477,10 +416,6 @@ Then, update the mode line counters."
   (let ((counter (k-po-type-counter)))
     (set counter (1+ (eval counter))))
   (k-po-update-mode-line-string))
-
-;; Avoid byte compiler warnings.
-(defvar k-po-fuzzy-regexp)
-(defvar k-po-untranslated-regexp)
 
 (defun k-po-map-entries (func &optional reporter)
   "Call FUNC for each entry in the buffer.
@@ -911,14 +846,6 @@ If WRAP is not nil, the search may wrap around the buffer."
 
 ;; Untranslated entries.
 
-(defvar k-po-after-entry-regexp
-  "\\(\\'\\|\\(#[ \t]*\\)?$\\)"
-  "Regexp which should be true after a full msgstr string matched.")
-
-(defvar k-po-untranslated-regexp
-  (concat "^msgstr\\(\\[[0-9]\\]\\)?[ \t]*\"\"\n" k-po-after-entry-regexp)
-  "Regexp matching a whole msgstr field, but only if active and empty.")
-
 (defun k-po-next-untranslated-entry ()
   "Find the next untranslated entry, wrapping around if necessary."
   (interactive)
@@ -946,10 +873,6 @@ If WRAP is not nil, the search may wrap around the buffer."
 
 ;; Obsolete entries.
 
-(defvar k-po-obsolete-msgstr-regexp
-  "^#~[ \t]*msgstr.*\n\\(#~[ \t]*\".*\n\\)*"
-  "Regexp matching a whole msgstr field of an obsolete entry.")
-
 (defun k-po-next-obsolete-entry ()
   "Find the next obsolete entry, wrapping around if necessary."
   (interactive)
@@ -961,11 +884,6 @@ If WRAP is not nil, the search may wrap around the buffer."
   (k-po-previous-entry-with-regexp k-po-obsolete-msgstr-regexp t))
 
 ;; Fuzzy entries.
-
-(defvar k-po-fuzzy-regexp "^#, .*fuzzy"
-  "Regexp matching the fuzzy marker.
-It is inserted by msgmerge for translations which does not match
-exactly.")
 
 (defun k-po-next-fuzzy-entry ()
   "Find the next fuzzy entry, wrapping around if necessary."
@@ -1201,10 +1119,6 @@ or completely delete an obsolete entry, saving its msgstr on the kill ring."
            (message "")))))
 
 ;;; Killing and yanking comments.
-
-(defvar k-po-comment-regexp
-  "^\\(#\n\\|# .*\n\\)+"
-  "Regexp matching the whole editable comment part of an entry.")
 
 (defun k-po-set-comment (form)
   "Using FORM to get a string, replace the current editable comment.
