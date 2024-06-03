@@ -408,13 +408,13 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
 (defun k-po-decrease-type-counter ()
   "Decrease the counter corresponding to the nature of the current entry."
   (let ((counter (k-po-type-counter)))
-    (set counter (1- (eval counter)))))
+    (cl-decf (symbol-value counter))))
 
 (defun k-po-increase-type-counter ()
   "Increase the counter corresponding to the nature of the current entry.
 Then, update the mode line counters."
   (let ((counter (k-po-type-counter)))
-    (set counter (1+ (eval counter))))
+    (cl-incf counter (symbol-value counter)))
   (k-po-update-mode-line-string))
 
 (defun k-po-map-entries (func &optional reporter)
@@ -1120,10 +1120,13 @@ or completely delete an obsolete entry, saving its msgstr on the kill ring."
 
 ;;; Killing and yanking comments.
 
-(defun k-po-set-comment (form &optional entry)
-  "Using FORM to get a string, replace the current editable comment.
-Evaluating FORM should insert the wanted string in the current buffer.
-If FORM is itself a string, then this string is used for insertion.
+(defun k-po-set-comment (str-or-func &optional entry)
+  "Use STR-OR-FUNC get a string to replace the current editable comment.
+
+If STR-OR-FUNC is a string, use that. Otherwise, if it is a
+function, it should insert the wanted string in the current
+buffer.
+
 The string is properly recommented before the replacement occurs.
 
 If ENTRY is non-nil, assume that is the current entry."
@@ -1132,10 +1135,10 @@ If ENTRY is non-nil, assume that is the current entry."
   (let ((obsolete (k-po-entry-type? entry 'obsolete))
         string)
     (with-temp-buffer
-      (if (stringp form)
-          (insert form)
+      (if (stringp str-or-func)
+          (insert str-or-func)
         (push-mark)
-        (eval form))
+        (funcall str-or-func))
       (if (not (or (bobp) (= (preceding-char) ?\n)))
           (insert "\n"))
       (goto-char (point-min))
@@ -1171,7 +1174,11 @@ If ENTRY is non-nil, use that instead of the current entry."
   "Replace the current comment string by the top of the kill ring."
   (interactive)
   (k-po-find-span-of-entry)
-  (k-po-set-comment (if (eq last-command 'yank) '(yank-pop 1) '(yank)))
+  (k-po-set-comment
+   (lambda ()
+     (if (eq last-command 'yank)
+         (yank-pop 1)
+       (yank))))
   (setq this-command 'yank)
   (k-po-redisplay))
 
