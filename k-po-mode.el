@@ -1730,56 +1730,53 @@ The string is properly recommented before the replacement occurs."
 
 ;;; Deleting the "previous untranslated" comment.
 
-(defun k-po-previous-untranslated-region-for (regexp)
-  "Return the list of previous untranslated regions (at most one) for the
-given regular expression REGEXP."
-  (save-excursion
-    (goto-char k-po-start-of-entry)
-    (if (re-search-forward regexp k-po-start-of-msgctxt t)
-        (list (cons (copy-marker (match-beginning 0))
-                    (copy-marker (match-end 0))))
-      nil)))
-
-(defun k-po-previous-untranslated-regions ()
-  "Return the list of previous untranslated regions in the current entry."
-  (append (k-po-previous-untranslated-region-for k-po-any-previous-msgctxt-regexp)
-          (k-po-previous-untranslated-region-for k-po-any-previous-msgid-regexp)
-          (k-po-previous-untranslated-region-for k-po-any-previous-msgid_plural-regexp)))
+(defun k-po-previous-untranslated-regions (entry)
+  "Return the list of previous untranslated regions in ENTRY."
+  (let (ret)
+    (dolist (regexp (list k-po-any-previous-msgctxt-regexp
+                          k-po-any-previous-msgid-regexp
+                          k-po-any-previous-msgid_plural-regexp))
+      (save-excursion
+        (goto-char (k-po-entry-start entry))
+        (when (re-search-forward regexp (k-po-entry-msgctxt-start entry) t)
+          (push (cons (copy-marker (match-beginning 0))
+                      (copy-marker (match-end 0)))
+                ret))))
+    (nreverse ret)))
 
 (defun k-po-delete-previous-untranslated ()
-  "Delete the previous msgctxt, msgid, msgid_plural fields (marked as #|
-comments) from the current entry."
+  "Delete the previous untranslated fields from the current entry.
+The fields are msgctxt, msgid, and msgid_plural (marked as #| comments)."
   (interactive)
-  (k-po-find-span-of-entry)
-  (dolist (region (k-po-previous-untranslated-regions))
-    (delete-region (car region) (cdr region)))
-  (k-po-redisplay))
+  (let ((entry (k-po-current-entry)))
+    (dolist (region (k-po-previous-untranslated-regions entry))
+      (delete-region (car region) (cdr region)))
+    (k-po-redisplay)))
 
 (defun k-po-maybe-delete-previous-untranslated ()
-  "Delete the previous msgctxt, msgid, msgid_plural fields (marked as #|
-comments) from the current entry, if the user gives the permission."
-  (k-po-find-span-of-entry)
-  (let ((previous-regions (k-po-previous-untranslated-regions)))
-    (if previous-regions
-        (if (or (eq k-po-auto-delete-previous-msgid t)
-                (and (eq k-po-auto-delete-previous-msgid 'ask)
-                     (let ((overlays nil))
-                       (unwind-protect
-                           (progn
-                             (setq overlays
-                                   (mapcar (function
-                                            (lambda (region)
-                                              (let ((overlay (k-po-create-overlay)))
-                                                (k-po-highlight overlay (car region) (cdr region))
-                                                overlay)))
-                                           previous-regions))
-                             ;; Scroll, to show the previous-regions.
-                             (goto-char (car (car previous-regions)))
-                             (prog1 (y-or-n-p "Delete previous msgid comments? ")
-                               (message "")))
-                         (mapc 'k-po-dehighlight overlays)))))
-            (dolist (region previous-regions)
-              (delete-region (car region) (cdr region)))))))
+  "Ask to delete the previous untranslated fields from the current entry.
+The fields are msgctxt, msgid, and msgid_plural (marked as #| comments)."
+  (let* ((entry (k-po-current-entry))
+         (previous-regions (k-po-previous-untranslated-regions entry)))
+    (when (and previous-regions
+               (or (eq k-po-auto-delete-previous-msgid t)
+                   (and (eq k-po-auto-delete-previous-msgid 'ask)
+                        (let ((overlays nil))
+                          (unwind-protect
+                              (progn
+                                (setq overlays
+                                      (mapcar (lambda (region)
+                                                (let ((overlay (k-po-create-overlay)))
+                                                  (k-po-highlight overlay (car region) (cdr region))
+                                                  overlay))
+                                              previous-regions))
+                                ;; Scroll, to show the previous-regions.
+                                (goto-char (car (car previous-regions)))
+                                (prog1 (y-or-n-p "Delete previous msgid comments? ")
+                                  (message "")))
+                            (mapc 'k-po-dehighlight overlays))))))
+      (dolist (region previous-regions)
+        (delete-region (car region) (cdr region))))))
 
 ;;; Editing management and submode.
 
