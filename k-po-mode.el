@@ -1551,6 +1551,7 @@ no entries of the other types."
 
 (defun k-po-get-msgid ()
   "Extract and return the unquoted msgid string."
+  (declare (obsolete k-po-entry-msgid "2024-06-04"))
   (k-po-extract-unquoted (current-buffer)
                          k-po-start-of-msgid
                          (or k-po-start-of-msgid_plural
@@ -1559,6 +1560,7 @@ no entries of the other types."
 (defun k-po-get-msgid_plural ()
   "Extract and return the unquoted msgid_plural string.
 Return nil if it is not present."
+  (declare (obsolete k-po-entry-msgid_plural "2024-06-04"))
   (when k-po-start-of-msgid_plural
     (k-po-extract-unquoted (current-buffer)
                            k-po-start-of-msgid_plural
@@ -2068,13 +2070,13 @@ read `k-po-subedit-ediff' documentation."
 (defun k-po-edit-msgstr ()
   "Use another window to edit the current msgstr."
   (interactive)
-  (k-po-find-span-of-entry)
-  (k-po-edit-string (if (and k-po-auto-edit-with-msgid
-                             (eq k-po-entry-type 'untranslated))
-                        (k-po-get-msgid)
-                      (k-po-get-msgstr-form))
-                    'msgstr
-                    t))
+  (let ((entry (k-po-current-entry)))
+    (k-po-edit-string (if (and k-po-auto-edit-with-msgid
+                               (k-po-entry-type? entry 'untranslated))
+                          (k-po-entry-msgid entry)
+                        (k-po-entry-msgstr entry))
+                      'msgstr
+                      t)))
 
 (defun k-po-edit-msgstr-and-ediff ()
   "Use `ediff' to edit the current msgstr.
@@ -2107,16 +2109,17 @@ To minibuffer messages sent while normalizing, add the EXPLAIN string."
   "Normalize FIELD of all entries.  FIELD is either the symbol msgid or msgstr.
 To minibuffer messages sent while normalizing, add the EXPLAIN string."
   (let ((here (point-marker))
-        (counter 0))
+        (counter 0)
+        entry)
     (goto-char (point-min))
     (while (re-search-forward k-po-any-msgstr-block-regexp nil t)
-      (if (= (% counter 10) 0)
-          (message "Normalizing %d, %s" counter explain))
+      (when (= (% counter 10) 0)
+        (message "Normalizing %d, %s" counter explain))
       (goto-char (match-beginning 0))
-      (k-po-find-span-of-entry)
-      (cond ((eq field 'msgid) (k-po-set-msgid (k-po-get-msgid)))
-            ((eq field 'msgstr) (k-po-set-msgstr-form (k-po-get-msgstr-form))))
-      (goto-char k-po-end-of-entry)
+      (setq entry (k-po-current-entry))
+      (cond ((eq field 'msgid) (k-po-set-msgid (k-po-entry-msgid entry)))
+            ((eq field 'msgstr) (k-po-set-msgstr-form (k-po-entry-msgstr entry))))
+      (goto-char (k-po-entry-end entry))
       (setq counter (1+ counter)))
     (goto-char here)
     (message "Normalizing %d...done" counter)))
