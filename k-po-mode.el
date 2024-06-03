@@ -1579,6 +1579,7 @@ Returns one of \"msgstr\" or \"msgstr[i]\" for some i."
 
 (defun k-po-get-msgstr-form ()
   "Extract and return the unquoted msgstr string."
+  (declare (obsolete k-po-entry-msgstr "2024-06-04"))
   (let ((string (k-po-extract-unquoted (current-buffer)
                                        k-po-start-of-msgstr-form
                                        k-po-end-of-msgstr-form)))
@@ -1656,45 +1657,45 @@ described by FORM is merely identical to the msgstr already in place."
   "Mark an active entry as fuzzy; obsolete a fuzzy or untranslated entry;
 or completely delete an obsolete entry, saving its msgstr on the kill ring."
   (interactive)
-  (k-po-find-span-of-entry)
+  (let ((entry (k-po-current-entry)))
+    (cond ((k-po-entry-type? entry 'translated)
+           (k-po-decrease-type-counter)
+           (k-po-add-attribute "fuzzy")
+           (k-po-display-current-entry)
+           (k-po-increase-type-counter))
 
-  (cond ((eq k-po-entry-type 'translated)
-         (k-po-decrease-type-counter)
-         (k-po-add-attribute "fuzzy")
-         (k-po-display-current-entry)
-         (k-po-increase-type-counter))
+          ((or (k-po-entry-type? entry 'fuzzy)
+               (k-po-entry-type? entry 'untranslated))
+           (if (y-or-n-p "Should I really obsolete this entry? ")
+               (progn
+                 (k-po-decrease-type-counter)
+                 (save-excursion
+                   (save-restriction
+                     (narrow-to-region k-po-start-of-entry k-po-end-of-entry)
+                     (goto-char (point-min))
+                     (skip-chars-forward "\n")
+                     (while (not (eobp))
+                       (insert "#~ ")
+                       (search-forward "\n"))))
+                 (k-po-display-current-entry)
+                 (k-po-increase-type-counter)))
+           (message ""))
 
-        ((or (eq k-po-entry-type 'fuzzy)
-             (eq k-po-entry-type 'untranslated))
-         (if (y-or-n-p "Should I really obsolete this entry? ")
-             (progn
-               (k-po-decrease-type-counter)
-               (save-excursion
-                 (save-restriction
-                   (narrow-to-region k-po-start-of-entry k-po-end-of-entry)
-                   (goto-char (point-min))
-                   (skip-chars-forward "\n")
-                   (while (not (eobp))
-                     (insert "#~ ")
-                     (search-forward "\n"))))
-               (k-po-display-current-entry)
-               (k-po-increase-type-counter)))
-         (message ""))
-
-        ((and (eq k-po-entry-type 'obsolete)
-              (k-po-check-for-pending-edit k-po-start-of-msgid)
-              (k-po-check-for-pending-edit k-po-start-of-msgstr-block))
-         (k-po-decrease-type-counter)
-         (k-po-update-mode-line-string)
-         ;; TODO: Should save all msgstr forms here, not just one.
-         (kill-new (k-po-get-msgstr-form))
-         (delete-region k-po-start-of-entry k-po-end-of-entry)
-         (goto-char k-po-start-of-entry)
-         (if (re-search-forward k-po-any-msgstr-block-regexp nil t)
-             (goto-char (match-beginning 0))
-           (re-search-backward k-po-any-msgstr-block-regexp nil t))
-         (k-po-display-current-entry)
-         (message ""))))
+          ((and (k-po-entry-type? entry 'obsolete)
+                (k-po-check-for-pending-edit (k-po-entry-msgid-start entry))
+                (k-po-check-for-pending-edit (k-po-entry-msgstr-block-start entry)))
+           (k-po-decrease-type-counter)
+           (k-po-update-mode-line-string)
+           ;; TODO: Should save all msgstr forms here, not just one.
+           (kill-new (k-po-entry-msgstr entry))
+           (delete-region (k-po-entry-start entry)
+                          (k-po-entry-end entry))
+           (goto-char (k-po-entry-start entry))
+           (if (re-search-forward k-po-any-msgstr-block-regexp nil t)
+               (goto-char (match-beginning 0))
+             (re-search-backward k-po-any-msgstr-block-regexp nil t))
+           (k-po-display-current-entry)
+           (message "")))))
 
 ;;; Killing and yanking comments.
 
