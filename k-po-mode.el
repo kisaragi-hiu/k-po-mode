@@ -63,8 +63,8 @@
   "*Automatically delete previous msgid (marked #|) when editing entry.
 Value is nil, t, or ask."
   :type '(choice (const nil)
-                 (const t)
-                 (const ask))
+          (const t)
+          (const ask))
   :group 'k-po)
 
 (defcustom k-po-auto-select-on-unfuzzy nil
@@ -80,15 +80,15 @@ Value is nil, t, or ask."
 (defcustom k-po-auto-update-file-header 'ask
   "*Automatically revise headers.  Value is nil, t, or ask."
   :type '(choice (const nil)
-                 (const t)
-                 (const ask))
+          (const t)
+          (const ask))
   :group 'k-po)
 
 (defcustom k-po-auto-replace-revision-date t
   "*Automatically revise date in headers.  Value is nil, t, or ask."
   :type '(choice (const nil)
-                 (const t)
-                 (const ask))
+          (const t)
+          (const ask))
   :group 'k-po)
 
 (defcustom k-po-default-file-header "\
@@ -683,7 +683,7 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
 (defconst k-po-subedit-mode-menu-layout
   `("PO-Edit"
     ["Ediff and merge translation variants" k-po-subedit-ediff
-      :help "Call `ediff' for merging variants"]
+     :help "Call `ediff' for merging variants"]
     ["Cycle through auxiliary files" k-po-subedit-cycle-auxiliary t]
     "---"
     ["Abort edit" k-po-subedit-abort
@@ -1575,8 +1575,8 @@ Returns one of \"msgstr\" or \"msgstr[i]\" for some i."
 (defun k-po-get-msgstr-form ()
   "Extract and return the unquoted msgstr string."
   (let ((string (k-po-extract-unquoted (current-buffer)
-                                     k-po-start-of-msgstr-form
-                                     k-po-end-of-msgstr-form)))
+                                       k-po-start-of-msgstr-form
+                                       k-po-end-of-msgstr-form)))
     string))
 
 (defun k-po-set-msgid (func)
@@ -2257,7 +2257,7 @@ without moving its cursor."
   (k-po-find-span-of-entry)
   (if k-po-auxiliary-list
       (let ((string
-              (buffer-substring k-po-start-of-msgid k-po-start-of-msgstr-block))
+             (buffer-substring k-po-start-of-msgid k-po-start-of-msgstr-block))
             (name (car (assoc (completing-read "Which auxiliary file? "
                                                k-po-auxiliary-list nil t)
                               k-po-auxiliary-list))))
@@ -2284,7 +2284,7 @@ without moving its cursor."
   (setq k-po-search-path (cons (list (if (string-match "/$" directory)
                                          directory
                                        (concat directory "/")))
-                             k-po-search-path))
+                               k-po-search-path))
   (setq k-po-reference-check 0)
   (k-po-show-source-path))
 
@@ -2523,33 +2523,33 @@ keyword for subsequent commands, also added to possible completions."
 ;;; Unknown mode specifics.
 
 (defvar-local k-po-find-string-function
-  (cond ((equal major-mode 'awk-mode)
-         #'k-po-find-awk-string)
-        ((member major-mode '(c-mode c++-mode))
-         #'k-po-find-c-string)
-        ((equal major-mode 'emacs-lisp-mode)
-         #'k-po-find-emacs-lisp-string)
-        ((equal major-mode 'python-mode)
-         #'k-po-find-python-string)
-        ((and (equal major-mode 'sh-mode)
-              (string-equal mode-line-process "[bash]"))
-         #'k-po-find-bash-string)
-        (t
-         #'k-po-find-unknown-string)))
+    (cond ((equal major-mode 'awk-mode)
+           #'k-po-find-awk-string)
+          ((member major-mode '(c-mode c++-mode))
+           #'k-po-find-c-string)
+          ((equal major-mode 'emacs-lisp-mode)
+           #'k-po-find-emacs-lisp-string)
+          ((equal major-mode 'python-mode)
+           #'k-po-find-python-string)
+          ((and (equal major-mode 'sh-mode)
+                (string-equal mode-line-process "[bash]"))
+           #'k-po-find-bash-string)
+          (t
+           #'k-po-find-unknown-string)))
 (defvar-local k-po-mark-string-function
-  (cond ((equal major-mode 'awk-mode)
-         #'k-po-mark-awk-string)
-        ((member major-mode '(c-mode c++-mode))
-         #'k-po-mark-c-string)
-        ((equal major-mode 'emacs-lisp-mode)
-         #'k-po-mark-emacs-lisp-string)
-        ((equal major-mode 'python-mode)
-         #'k-po-mark-python-string)
-        ((and (equal major-mode 'sh-mode)
-              (string-equal mode-line-process "[bash]"))
-         #'k-po-mark-bash-string)
-        (t
-         #'k-po-mark-unknown-string)))
+    (cond ((equal major-mode 'awk-mode)
+           #'k-po-mark-awk-string)
+          ((member major-mode '(c-mode c++-mode))
+           #'k-po-mark-c-string)
+          ((equal major-mode 'emacs-lisp-mode)
+           #'k-po-mark-emacs-lisp-string)
+          ((equal major-mode 'python-mode)
+           #'k-po-mark-python-string)
+          ((and (equal major-mode 'sh-mode)
+                (string-equal mode-line-process "[bash]"))
+           #'k-po-mark-bash-string)
+          (t
+           #'k-po-mark-unknown-string)))
 
 (defun k-po-find-unknown-string (keywords)
   "Dummy function to skip over a file, finding no string in it."
@@ -2906,7 +2906,7 @@ Leave point after string.  Return unquoted overall string contents."
                                  (if raw
                                      (buffer-substring start end)
                                    (k-po-extract-part-unquoted (current-buffer)
-                                                             start end))))))
+                                                               start end))))))
     (goto-char resume)
     contents))
 
