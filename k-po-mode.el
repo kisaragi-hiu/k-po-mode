@@ -2,8 +2,8 @@
 
 ;; Author: Kisaragi Hiu
 ;; Version: 0.1
-;; Package-Requires: ((emacs "24.3") (f "0.20.0"))
-;; Homepage: homepage
+;; Package-Requires: ((emacs "29.1") (f "0.20.0"))
+;; Homepage: https://github.com/kisaragi-hiu/k-po-mode
 ;; Keywords: po languages
 
 
@@ -29,6 +29,9 @@
 ;; https://github.com/emacsmirror/po-mode/ gave me a bunch of errors,
 ;; so instead of figuring it out I'm just going to patch it so that it
 ;; works.
+;;
+;; I'm also interested in adding multi-file project-wide translation features in
+;; here.
 
 ;;; Code:
 
