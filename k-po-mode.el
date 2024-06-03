@@ -1553,40 +1553,6 @@ no entries of the other types."
 
 ;;; Killing and yanking fields.
 
-(defun k-po-get-msgid ()
-  "Extract and return the unquoted msgid string."
-  (declare (obsolete k-po-entry-msgid "2024-06-04"))
-  (k-po-extract-unquoted (current-buffer)
-                         k-po-start-of-msgid
-                         (or k-po-start-of-msgid_plural
-                             k-po-start-of-msgstr-block)))
-
-(defun k-po-get-msgid_plural ()
-  "Extract and return the unquoted msgid_plural string.
-Return nil if it is not present."
-  (declare (obsolete k-po-entry-msgid_plural "2024-06-04"))
-  (when k-po-start-of-msgid_plural
-    (k-po-extract-unquoted (current-buffer)
-                           k-po-start-of-msgid_plural
-                           k-po-start-of-msgstr-block)))
-
-(defun k-po-get-msgstr-flavor ()
-  "Helper function to detect msgstr and msgstr[] variants.
-Returns one of \"msgstr\" or \"msgstr[i]\" for some i."
-  (declare (obsolete k-po-entry-msgstr-flavor "2024-06-04"))
-  (save-excursion
-    (goto-char k-po-start-of-msgstr-form)
-    (re-search-forward "^\\(#~[ \t]*\\)?\\(msgstr\\(\\[[0-9]\\]\\)?\\)")
-    (match-string 2)))
-
-(defun k-po-get-msgstr-form ()
-  "Extract and return the unquoted msgstr string."
-  (declare (obsolete k-po-entry-msgstr "2024-06-04"))
-  (let ((string (k-po-extract-unquoted (current-buffer)
-                                       k-po-start-of-msgstr-form
-                                       k-po-end-of-msgstr-form)))
-    string))
-
 (defun k-po-set-msgid (func)
   "Replace the current msgid, using FUNC to get a string.
 Calling FUNC should insert the wanted string in the current
@@ -1712,26 +1678,6 @@ or completely delete an obsolete entry, saving its msgstr on the kill ring."
 (defvar k-po-comment-regexp
   "^\\(#\n\\|# .*\n\\)+"
   "Regexp matching the whole editable comment part of an entry.")
-
-(defun k-po-get-comment (kill-flag)
-  "Extract and return the editable comment string, uncommented.
-If KILL-FLAG, then add the unquoted comment to the kill ring."
-  (declare (obsolete k-po-entry-comment "2024-06-04"))
-  (let ((buffer (current-buffer))
-        (obsolete (eq k-po-entry-type 'obsolete)))
-    (save-excursion
-      (goto-char k-po-start-of-entry)
-      (if (re-search-forward k-po-comment-regexp k-po-end-of-entry t)
-          (with-temp-buffer
-            (insert-buffer-substring buffer (match-beginning 0) (match-end 0))
-            (goto-char (point-min))
-            (while (not (eobp))
-              (if (looking-at (if obsolete "#\\(\n\\| \\)" "# ?"))
-                  (replace-match "" t t))
-              (forward-line 1))
-            (and kill-flag (copy-region-as-kill (point-min) (point-max)))
-            (buffer-string))
-        ""))))
 
 (defun k-po-set-comment (form)
   "Using FORM to get a string, replace the current editable comment.
