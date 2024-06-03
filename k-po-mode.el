@@ -1413,7 +1413,8 @@ If WRAP is not nil, the search may wrap around the buffer."
         ;; In an entry with plural forms, use the msgid_plural string,
         ;; as it is more general than the msgid string.
         (if (k-po-set-msgstr-form (or (k-po-entry-msgid_plural entry)
-                                      (k-po-entry-msgid entry)))
+                                      (k-po-entry-msgid entry))
+                                  entry)
             (k-po-maybe-delete-previous-untranslated)))))
 
 ;; Obsolete entries.
@@ -1572,6 +1573,7 @@ Return nil if it is not present."
 (defun k-po-get-msgstr-flavor ()
   "Helper function to detect msgstr and msgstr[] variants.
 Returns one of \"msgstr\" or \"msgstr[i]\" for some i."
+  (declare (obsolete k-po-entry-msgstr-flavor "2024-06-04"))
   (save-excursion
     (goto-char k-po-start-of-msgstr-form)
     (re-search-forward "^\\(#~[ \t]*\\)?\\(msgstr\\(\\[[0-9]\\]\\)?\\)")
@@ -1604,42 +1606,49 @@ described by CALL is merely identical to the msgid already in place."
            (k-po-find-span-of-entry)
            t))))
 
-(defun k-po-set-msgstr-form (func)
-  "Replace the current msgstr or msgstr[], using FUNC to get a string.
+(defun k-po-set-msgstr-form (func &optional entry)
+  "Replace the msgstr or msgstr[] of the current entry, using FUNC to get a string.
 Calling FUNC should insert the wanted string in the current
 buffer. If FUNC is itself a string, then this string is used for
 insertion. The string is properly requoted before the replacement
 occurs.
 
+If ENTRY is non-nil, use that as the current entry instead of
+figuring it out from the buffer again.
+
 Return nil if the buffer has not been modified, for if the new msgstr
 described by FORM is merely identical to the msgstr already in place."
+  (unless entry
+    (setq entry (k-po-current-entry)))
   (let ((string (k-po-call-requoted func
-                                    (k-po-get-msgstr-flavor)
-                                    (eq k-po-entry-type 'obsolete))))
+                                    (k-po-entry-msgstr-flavor entry)
+                                    (k-po-entry-type? entry 'obsolete))))
     (save-excursion
-      (goto-char k-po-start-of-msgstr-form)
-      (re-search-forward k-po-any-msgstr-form-regexp k-po-end-of-msgstr-form)
+      (goto-char (k-po-entry-msgstr-form-start entry))
+      (re-search-forward k-po-any-msgstr-form-regexp (k-po-entry-msgstr-form-end entry))
       (and (not (string-equal (match-string-no-properties 0) string))
            (k-po-decrease-type-counter)
            (replace-match string t t)
-           (goto-char k-po-start-of-msgid)
+           (goto-char (k-po-entry-msgid-start entry))
            (k-po-find-span-of-entry)
            (k-po-increase-type-counter)
            t))))
 
-(defun k-po-kill-ring-save-msgstr ()
-  "Push the msgstr string from current entry on the kill ring."
+(defun k-po-kill-ring-save-msgstr (&optional entry)
+  "Push the msgstr string from ENTRY on the kill ring.
+ENTRY defaults to the current entry."
   (interactive)
-  (let ((string (k-po-entry-msgstr (k-po-current-entry))))
+  (let ((string (k-po-entry-msgstr (or entry (k-po-current-entry)))))
     (kill-new string)
     string))
 
 (defun k-po-kill-msgstr ()
   "Empty the msgstr string from current entry, pushing it on the kill ring."
   (interactive)
-  (k-po-kill-ring-save-msgstr)
-  (when (k-po-set-msgstr-form "")
-    (k-po-maybe-delete-previous-untranslated)))
+  (let ((entry (k-po-current-entry)))
+    (k-po-kill-ring-save-msgstr entry)
+    (when (k-po-set-msgstr-form "" entry)
+      (k-po-maybe-delete-previous-untranslated))))
 
 (defun k-po-yank-msgstr ()
   "Replace the current msgstr string by the top of the kill ring."
