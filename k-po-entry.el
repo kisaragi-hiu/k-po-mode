@@ -7,6 +7,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'k-po-vars)
 (require 'k-po-extract)
 
 (cl-defstruct (k-po-entry (:copier nil)
