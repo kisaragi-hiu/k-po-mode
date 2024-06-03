@@ -484,13 +484,13 @@ Position %d/%d; %d translated, %d fuzzy, %d untranslated, %d obsolete"
       (message "")))
   (k-po-update-mode-line-string))
 
-(defun k-po-redisplay ()
-  "Redisplay the current entry."
-  ;; FIXME: Should try to fit the whole entry on the window.  If this is not
+(defun k-po-redisplay (&optional entry)
+  "Redisplay ENTRY or the current entry."
+  ;; TODO: Should try to fit the whole entry on the window.  If this is not
   ;; possible, should try to fit the comment and the msgid.  Otherwise,
   ;; should try to fit the msgid.  Else, the first line of the msgid should
   ;; be at the top of the window.
-  (goto-char k-po-start-of-msgid))
+  (goto-char (k-po-entry-msgid-start (or entry (k-po-current-entry)))))
 
 (defun k-po-other-window ()
   "Get the cursor into another window, out of PO mode."
@@ -747,8 +747,8 @@ fuzzy, untranslated, or translated."
 (defun k-po-display-current-entry ()
   "Display the current entry."
   (interactive)
-  (k-po-find-span-of-entry)
-  (k-po-redisplay))
+  (k-po-redisplay
+   (k-po-current-entry)))
 
 (defun k-po-first-entry-with-regexp (regexp)
   "Display the first entry in the file which msgstr matches REGEXP."
@@ -1120,12 +1120,16 @@ or completely delete an obsolete entry, saving its msgstr on the kill ring."
 
 ;;; Killing and yanking comments.
 
-(defun k-po-set-comment (form)
+(defun k-po-set-comment (form &optional entry)
   "Using FORM to get a string, replace the current editable comment.
 Evaluating FORM should insert the wanted string in the current buffer.
 If FORM is itself a string, then this string is used for insertion.
-The string is properly recommented before the replacement occurs."
-  (let ((obsolete (eq k-po-entry-type 'obsolete))
+The string is properly recommented before the replacement occurs.
+
+If ENTRY is non-nil, assume that is the current entry."
+  (unless entry
+    (setq entry (k-po-current-entry)))
+  (let ((obsolete (k-po-entry-type? entry 'obsolete))
         string)
     (with-temp-buffer
       (if (stringp form)
@@ -1139,27 +1143,29 @@ The string is properly recommented before the replacement occurs."
         (insert (if (= (following-char) ?\n) "#" "# "))
         (search-forward "\n"))
       (setq string (buffer-string)))
-    (goto-char k-po-start-of-entry)
-    (if (re-search-forward k-po-comment-regexp k-po-end-of-entry t)
+    (goto-char (oref entry start))
+    (if (re-search-forward k-po-comment-regexp (oref entry end) t)
         (if (not (string-equal (match-string-no-properties 0) string))
             (replace-match string t t))
       (skip-chars-forward " \t\n")
       (insert string)))
   (k-po-display-current-entry))
 
-(defun k-po-kill-ring-save-comment ()
-  "Push the msgstr string from current entry on the kill ring."
+(defun k-po-kill-ring-save-comment (&optional entry)
+  "Push the msgstr string from current entry on the kill ring.
+If ENTRY is non-nil, use that instead of the current entry."
   (interactive)
   (kill-new
    (k-po-entry-comment
-    (k-po-current-entry))))
+    (or entry (k-po-current-entry)))))
 
 (defun k-po-kill-comment ()
   "Empty the msgstr string from current entry, pushing it on the kill ring."
   (interactive)
-  (k-po-kill-ring-save-comment)
-  (k-po-set-comment "")
-  (k-po-redisplay))
+  (let ((entry (k-po-current-entry)))
+    (k-po-kill-ring-save-comment entry)
+    (k-po-set-comment "" entry)
+    (k-po-redisplay entry)))
 
 (defun k-po-yank-comment ()
   "Replace the current comment string by the top of the kill ring."
