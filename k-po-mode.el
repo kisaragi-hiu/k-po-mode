@@ -441,7 +441,6 @@ iteration, and finalized using `progress-reporter-done' afterwards."
         k-po-untranslated-counter 0
         k-po-obsolete-counter 0)
   (let ((position 0) (total 0) current here)
-    ;; FIXME 'here' looks obsolete / 2001-08-23 03:54:26 CEST -ke-
     (save-excursion
       (setq current (k-po-entry-msgstr-block-start (k-po-current-entry)))
       (goto-char (point-min))
@@ -538,11 +537,10 @@ Can be customized with the `k-po-auto-update-file-header' variable."
               ;; Not a single entry found.
               (setq insert-flag t))
             (goto-char (point-min))
-            (if insert-flag
-                (progn
-                  (insert k-po-default-file-header)
-                  (if (not (eobp))
-                      (insert "\n")))))))
+            (when insert-flag
+              (insert k-po-default-file-header)
+              (if (not (eobp))
+                  (insert "\n"))))))
     (message "PO Header Entry was not updated...")))
 
 (defun k-po-replace-revision-date ()
@@ -1087,19 +1085,19 @@ or completely delete an obsolete entry, saving its msgstr on the kill ring."
 
           ((or (k-po-entry-type? entry 'fuzzy)
                (k-po-entry-type? entry 'untranslated))
-           (if (y-or-n-p "Should I really obsolete this entry? ")
-               (progn
-                 (k-po-decrease-type-counter)
-                 (save-excursion
-                   (save-restriction
-                     (narrow-to-region k-po-start-of-entry k-po-end-of-entry)
-                     (goto-char (point-min))
-                     (skip-chars-forward "\n")
-                     (while (not (eobp))
-                       (insert "#~ ")
-                       (search-forward "\n"))))
-                 (k-po-display-current-entry)
-                 (k-po-increase-type-counter)))
+           (when (y-or-n-p "Should I really obsolete this entry? ")
+             (k-po-decrease-type-counter)
+             (save-excursion
+               (save-restriction
+                 (narrow-to-region (oref entry start)
+                                   (oref entry end))
+                 (goto-char (point-min))
+                 (skip-chars-forward "\n")
+                 (while (not (eobp))
+                   (insert "#~ ")
+                   (search-forward "\n"))))
+             (k-po-display-current-entry)
+             (k-po-increase-type-counter))
            (message ""))
 
           ((and (k-po-entry-type? entry 'obsolete)
@@ -1268,22 +1266,19 @@ The fields are msgctxt, msgid, and msgid_plural (marked as #| comments)."
   (let ((marker (make-marker)))
     (set-marker marker position)
     (let ((slot (assoc marker k-po-edited-fields)))
-      (if slot
-          (progn
-            (goto-char marker)
-            (pop-to-buffer (nth 1 slot))
-            (message k-po-subedit-message)))
+      (when slot
+        (goto-char marker)
+        (pop-to-buffer (nth 1 slot))
+        (message k-po-subedit-message))
       (not slot))))
 
 (defun k-po-edit-out-full ()
   "Get out of PO mode, leaving PO file buffer in fundamental mode."
   (interactive)
-  (if (k-po-check-all-pending-edits)
-      ;; Don't ask the user for confirmation, since he has explicitly asked
-      ;; for it.
-      (progn
-        (fundamental-mode)
-        (message "Type 'M-x k-po-mode RET' once done"))))
+  (when (k-po-check-all-pending-edits)
+    ;; No need to ask as the user has just explicitly asked for it.
+    (fundamental-mode)
+    (message (substitute-command-keys "Type \\`M-x k-po-mode RET' once done"))))
 
 (defun k-po-ediff-quit ()
   "Quit ediff and exit `recursive-edit'."
@@ -1408,13 +1403,12 @@ the ediff control panel."
             ((= (point) (k-po-entry-msgstr-form-start entry))
              (when (k-po-set-msgstr-form str)
                (k-po-maybe-delete-previous-untranslated)
-               (if (and k-po-auto-fuzzy-on-edit
-                        (k-po-entry-type? entry 'translated))
-                   (progn
-                     (k-po-decrease-type-counter)
-                     (k-po-add-attribute "fuzzy")
-                     (k-po-display-current-entry)
-                     (k-po-increase-type-counter)))))
+               (when (and k-po-auto-fuzzy-on-edit
+                          (k-po-entry-type? entry 'translated))
+                 (k-po-decrease-type-counter)
+                 (k-po-add-attribute "fuzzy")
+                 (k-po-display-current-entry)
+                 (k-po-increase-type-counter))))
             (t (debug))))))
 
 (defun k-po-edit-string (string type expand-tabs)
