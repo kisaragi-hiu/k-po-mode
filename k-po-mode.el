@@ -692,7 +692,7 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
      :help "Use this text as the translation and close current edit buffer"]))
 
 (defconst k-po-subedit-message
-  "Type 'C-c C-c' once done, or 'C-c C-k' to abort edit"
+  "Type \\[k-po-subedit-exit] once done, or \\[k-po-subedit-abort] to abort edit"
   "Message to post in the minibuffer when an edit buffer is displayed.")
 
 (defvar k-po-auxiliary-list nil
@@ -1846,7 +1846,7 @@ comments) from the current entry, if the user gives the permission."
       (let ((slot (car k-po-edited-fields)))
         (goto-char (nth 0 slot))
         (pop-to-buffer (nth 1 slot))
-        (message k-po-subedit-message)
+        (message "%s" (substitute-command-keys k-po-subedit-message))
         nil)))
 
 (defun k-po-check-for-pending-edit (position)
