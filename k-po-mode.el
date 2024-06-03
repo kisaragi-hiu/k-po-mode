@@ -126,8 +126,8 @@ to this email address."
 
 (defcustom k-po-highlight-face 'highlight
   "*The face used for PO mode highlighting.  For Emacses with overlays.
-Possible values are 'highlight', 'modeline', 'secondary-selection',
-'region', and 'underline'.
+Possible values are `highlight', `modeline', `secondary-selection',
+`region', and `underline'.
 This variable can be set by the user to whatever face they desire.
 It's most convenient if the cursor color and highlight color are
 slightly different."
@@ -419,7 +419,7 @@ If a string instead of an alist, it is a team code to use unconditionnally."
 (defcustom k-po-gzip-uuencode-command "gzip -9 | uuencode -m"
   "*The filter to use for preparing a mail invoice of the PO file.
 Normally \"gzip -9 | uuencode -m\", remove the -9 for lesser compression,
-or remove the -m if you are not using the GNU version of 'uuencode'."
+or remove the -m if you are not using the GNU version of `uuencode'."
   :type 'string
   :group 'k-po)
 
@@ -433,7 +433,7 @@ or remove the -m if you are not using the GNU version of 'uuencode'."
 
 (defun k-po-create-overlay ()
   "Create and return a deleted overlay structure.
-The variable 'k-po-highlight-face' selects the face to use for highlighting."
+The variable `k-po-highlight-face' selects the face to use for highlighting."
   (let ((overlay (make-overlay (point) (point))))
     (overlay-put overlay 'face k-po-highlight-face)
     ;; The fun thing is that a deleted overlay retains its face, and is
@@ -699,7 +699,7 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
   "List of auxiliary PO files, in completing read format.")
 
 (defvar k-po-auxiliary-cursor nil
-  "Cursor into the 'k-po-auxiliary-list'.")
+  "Cursor into the `k-po-auxiliary-list'.")
 
 (defvar k-po-compose-mail-function
   (let ((functions '(compose-mail-other-window
@@ -2006,7 +2006,7 @@ the ediff control panel."
 
 (defun k-po-edit-string (string type expand-tabs)
   "Prepare a pop up buffer for editing STRING, which is of a given TYPE.
-TYPE may be 'comment or 'msgstr.  If EXPAND-TABS, expand tabs to spaces.
+TYPE may be `comment' or `msgstr'.  If EXPAND-TABS, expand tabs to spaces.
 Run functions on k-po-subedit-mode-hook."
   (let ((marker (make-marker)))
     (set-marker marker (cond ((eq type 'comment) k-po-start-of-msgid)
@@ -2177,11 +2177,11 @@ To minibuffer messages sent while normalizing, add the EXPLAIN string."
   (k-po-show-auxiliary-list))
 
 (defun k-po-seek-equivalent-translation (name string)
-  "Search a PO file NAME for a 'msgid' STRING having a non-empty 'msgstr'.
-STRING is the full quoted msgid field, including the 'msgid' keyword.  When
-found, display the file over the current window, with the 'msgstr' field
-possibly highlighted, the cursor at start of msgid, then return 't'.
-Otherwise, move nothing, and just return 'nil'."
+  "Search a PO file NAME for a `msgid' STRING having a non-empty `msgstr'.
+STRING is the full quoted msgid field, including the `msgid' keyword.  When
+found, display the file over the current window, with the `msgstr' field
+possibly highlighted, the cursor at start of msgid, then return t.
+Otherwise, move nothing, and just return nil."
   (let ((current (current-buffer))
         (buffer (find-file-noselect name)))
     (set-buffer buffer)
@@ -2216,7 +2216,7 @@ Otherwise, move nothing, and just return 'nil'."
       found)))
 
 (defun k-po-cycle-auxiliary ()
-  "Select the next auxiliary file having an entry with same 'msgid'."
+  "Select the next auxiliary file having an entry with same `msgid'."
   (interactive)
   (k-po-find-span-of-entry)
   (if k-po-auxiliary-list
@@ -2254,7 +2254,7 @@ Otherwise, move nothing, and just return 'nil'."
 
 (defun k-po-select-auxiliary ()
   "Select one of the available auxiliary files and locate an equivalent entry.
-If an entry having the same 'msgid' cannot be found, merely select the file
+If an entry having the same `msgid' cannot be found, merely select the file
 without moving its cursor."
   (interactive)
   (k-po-find-span-of-entry)
@@ -2938,7 +2938,7 @@ Leave point after marked string."
   (k-po-compute-counters t))
 
 (defun k-po-validate ()
-  "Use 'msgfmt' for validating the current PO file contents."
+  "Use `msgfmt' for validating the current PO file contents."
   (interactive)
   ;; The 'compile' subsystem is autoloaded through a call to (compile ...).
   ;; We need to initialize it outside of any binding. Without this statement,
@@ -2965,7 +2965,7 @@ Leave point after marked string."
 
 (defvar k-po-msgfmt-version-checked nil)
 (defun k-po-msgfmt-version-check ()
-  "'msgfmt' from GNU gettext 0.10.36 or greater is required."
+  "`msgfmt' from GNU gettext 0.10.36 or greater is required."
   (with-temp-buffer
     (or
      ;; Don't bother checking again.
