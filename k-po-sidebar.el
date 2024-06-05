@@ -96,7 +96,18 @@ SOURCE-BUFFER is the PO file buffer."
         (let ((entry (k-po-current-entry)))
           (setq msgid (k-po-entry-msgid entry))))
       (erase-buffer)
-      ;; Root section
+      (insert (propertize "Stats" 'face 'bold))
+      (insert (with-current-buffer source-buffer
+                (format ": %s translated, %s fuzzy, %s untranslated (%.2f%%)\n\n"
+                        k-po-translated-counter
+                        k-po-fuzzy-counter
+                        k-po-untranslated-counter
+                        (* 100
+                           (/ k-po-translated-counter
+                              (+ k-po-translated-counter
+                                 k-po-fuzzy-counter
+                                 k-po-untranslated-counter)
+                              1.0)))))
       (insert (propertize "Translation Memory\n" 'face 'bold))
       (insert "\n")
       (let ((mapping (k-po-memory-get msgid)))
