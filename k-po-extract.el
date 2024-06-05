@@ -6,6 +6,31 @@
 
 ;;; Code:
 
+(require 'k-po-vars)
+
+(defun k-po-goto-header ()
+  "Jump to the start of the header, if any.
+If a header does not exist, return nil. Otherwise, return
+\(TYPE . END), where TYPE is either t or `legacy' (for an
+old-style header), and END is the end position of the header."
+  (interactive)
+  (goto-char (point-min))
+  (let (end-of-header start-of-header ret)
+    (when (re-search-forward k-po-any-msgstr-block-regexp nil t)
+      ;; There is at least one entry.
+      (goto-char (match-beginning 0))
+      (forward-line -1)
+      (setq start-of-header (point))
+      (setq end-of-header (match-end 0))
+      (when (looking-at "msgid \"\"\n")
+        ;; There is indeed a PO file header.
+        (if (re-search-forward "\n\"PO-Revision-Date: "
+                               end-of-header t)
+            (setq ret (cons t end-of-header))
+          (setq ret (cons 'legacy end-of-header)))
+        (goto-char start-of-header)
+        ret))))
+
 (defun k-po-extract-unquoted (buffer start end)
   "Extract and return the unquoted string in BUFFER going from START to END.
 Crumb preceding or following the quoted string is ignored."

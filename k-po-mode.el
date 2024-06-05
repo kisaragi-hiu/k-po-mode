@@ -510,31 +510,20 @@ Can be customized with the `k-po-auto-update-file-header' variable."
       (save-excursion
         (save-restriction
           (widen) ; in case of a narrowed view to the buffer
-          (let (insert-flag end-of-header)
+          (let (insert-flag)
             (goto-char (point-min))
-            (if (re-search-forward k-po-any-msgstr-block-regexp nil t)
-                (progn
-                  ;; There is at least one entry.
-                  (goto-char (match-beginning 0))
+            (let ((header (k-po-goto-header)))
+              (when (eq 'legacy (car header))
+                ;; This is an oldish header.  Replace it all.
+                (setq insert-flag t)
+                (goto-char (cdr header))
+                (while (> (point) (point-min))
                   (forward-line -1)
-                  (setq end-of-header (match-end 0))
-                  (if (looking-at "msgid \"\"\n")
-                      ;; There is indeed a PO file header.
-                      (if (re-search-forward "\n\"PO-Revision-Date: "
-                                             end-of-header t)
-                          nil
-                        ;; This is an oldish header.  Replace it all.
-                        (goto-char end-of-header)
-                        (while (> (point) (point-min))
-                          (forward-line -1)
-                          (insert "#~ ")
-                          (beginning-of-line))
-                        (beginning-of-line)
-                        (setq insert-flag t))
-                    ;; The first entry is not a PO file header, insert one.
-                    (setq insert-flag t)))
-              ;; Not a single entry found.
-              (setq insert-flag t))
+                  (insert "#~ ")
+                  (beginning-of-line))
+                (beginning-of-line))
+              (unless header
+                (setq insert-flag t)))
             (goto-char (point-min))
             (when insert-flag
               (insert k-po-default-file-header)
