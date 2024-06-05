@@ -7,8 +7,6 @@
 
 ;;; Code:
 
-(require 'magit-section)
-
 (require 'k-po-entry)
 (require 'k-po-memory)
 
@@ -84,7 +82,6 @@ Has an effect if and only if `k-po-sidebar-position' is `top' or `bottom'."
 
 (defun k-po-sidebar--buffer-init ()
   "Initialize the sidebar buffer."
-  (magit-section-mode)
   (variable-pitch-mode)
   (setq-local word-wrap nil)
   (setq-local truncate-lines nil))
@@ -99,45 +96,45 @@ SOURCE-BUFFER is the PO file buffer."
         (let ((entry (k-po-current-entry)))
           (setq msgid (k-po-entry-msgid entry))))
       (erase-buffer)
-      ;; TODO: show file stats when in header
       ;; Root section
-      (magit-insert-section (magit-section)
-        (magit-insert-section (magit-section)
-          (magit-insert-heading "Translation Memory")
-          (magit-insert-section-body
+      (insert (propertize "Translation Memory\n" 'face 'bold))
+      (insert "\n")
+      (let ((mapping (k-po-memory-get msgid)))
+        (if (not mapping)
+            (insert (propertize "None" 'face 'italic))
+          (pcase-dolist (`(,source ,target ,count) mapping)
+            (insert (propertize
+                     (format "%s\n(%sx) %s\n"
+                             source
+                             count
+                             target)
+                     'face 'bold))
+            (insert-text-button
+             "Use this translation"
+             'face 'button
+             'action (lambda (&rest _)
+                       (with-current-buffer source-buffer
+                         (k-po-set-msgstr-form target))))
             (insert "\n")
-            (let ((mapping (k-po-memory-get msgid)))
-              (if (not mapping)
-                  (insert (propertize "None" 'face '(variable-pitch italic)))
-                (pcase-dolist (`(,source ,target ,count) mapping)
-                  (magit-insert-section (magit-section)
-                    (magit-insert-heading
-                      (propertize
-                       (format "%s\n(%sx) %s"
-                               source
-                               count
-                               target)
-                       'face '(bold variable-pitch)))
-                    (magit-insert-section-body
-                      (insert-text-button
-                       "Replace"
-                       'face 'button
-                       'action (lambda (&rest _)
-                                 (with-current-buffer source-buffer
-                                   (k-po-set-msgstr-form target))))
-                      (let ((files (remove (buffer-file-name source-buffer)
-                                           (k-po-memory--get-files source target))))
-                        (when files
-                          (insert "\n")
-                          (insert-text-button
-                           "Visit file"
-                           'face 'button
-                           'action (lambda (&rest _)
-                                     (if (= 1 (length files))
-                                         (find-file (car files))
-                                       (find-file (completing-read "Which file: " files)))
-                                     (k-po-jump-to-entry source target)))))
-                      (insert "\n\n"))))))))))))
+            (insert-text-button
+             "Copy"
+             'face 'button
+             'action (lambda (&rest _)
+                       (kill-new target)
+                       (message "Copied \"%s\"..." target)))
+            (let ((files (remove (buffer-file-name source-buffer)
+                                 (k-po-memory--get-files source target))))
+              (when files
+                (insert "\n")
+                (insert-text-button
+                 "Visit file"
+                 'face 'button
+                 'action (lambda (&rest _)
+                           (if (= 1 (length files))
+                               (find-file (car files))
+                             (find-file (completing-read "Which file: " files)))
+                           (k-po-jump-to-entry source target)))))
+            (insert "\n\n")))))))
 
 (defun k-po-sidebar--post-command-h ()
   "Hook function for updating the sidebar buffer in `post-command-hook'."
