@@ -118,7 +118,8 @@ for each column."
                    tbl
                    (string-join schemata ",")))))
       ;; Index
-      (sqlite-execute db "CREATE INDEX idx_mapping_source ON mapping(source);"))
+      (sqlite-execute db "CREATE INDEX idx_mapping_source ON mapping(source);")
+      (sqlite-execute db "CREATE INDEX idx_mapping_file ON mapping(file);"))
     (let ((current-version (caar (sqlite-select db "pragma user_version"))))
       (unless (eql current-version k-po-memory--version)
         (message
