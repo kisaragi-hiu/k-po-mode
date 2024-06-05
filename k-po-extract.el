@@ -8,6 +8,20 @@
 
 (require 'k-po-vars)
 
+;; By reusing the same buffer, we avoid having to repeatedly create and destroy
+;; buffers. That appears to be slower than erase-buffer.
+;;
+;; This also works around Doom's buffer-predicate frame parameter,
+;; `doom-buffer-frame-predicate', being run for each buffer when they are
+;; killed. The function is quite slow.
+(defmacro k-po-with-temp-buffer (&rest body)
+  "Run BODY within a temporary buffer and return the value.
+Like `with-temp-buffer', but reuses the same temporary buffer."
+  `(with-current-buffer (get-buffer-create " *k-po-temp*" t)
+     (setq buffer-undo-list t)
+     (erase-buffer)
+     ,@body))
+
 (defun k-po-goto-header ()
   "Jump to the start of the header, if any.
 If a header does not exist, return nil. Otherwise, return
@@ -46,7 +60,7 @@ Crumb preceding or following the quoted string is ignored."
 (defun k-po-extract-part-unquoted (buffer start end)
   "Extract and return the unquoted string in BUFFER going from START to END.
 Surrounding quotes are already excluded by the position of START and END."
-  (with-temp-buffer
+  (k-po-with-temp-buffer
    (insert-buffer-substring buffer start end)
    ;; Glue concatenated strings.
    (goto-char (point-min))
@@ -81,40 +95,40 @@ If OBSOLETE, comment all generated lines in the returned string.
 FUNC should insert the wanted string in the buffer which is
 current at the time of evaluation. If FUNC is itself a string,
 then this string inserted."
-  (with-temp-buffer
-    (if (stringp func)
-        (insert func)
-      (push-mark)
-      (funcall func))
-    (goto-char (point-min))
-    (let ((multi-line (re-search-forward "[^\n]\n+[^\n]" nil t)))
-      (goto-char (point-min))
-      (while (re-search-forward "[\"\a\b\f\n\r\t\\]" nil t)
-        (cond ((eq (preceding-char) ?\") (replace-match "\\\"" t t))
-              ((eq (preceding-char) ?\a) (replace-match "\\a" t t))
-              ((eq (preceding-char) ?\b) (replace-match "\\b" t t))
-              ((eq (preceding-char) ?\f) (replace-match "\\f" t t))
-              ((eq (preceding-char) ?\n)
-               (replace-match (if (or (not multi-line) (eobp))
-                                  "\\n"
-                                "\\n\"\n\"")
-                              t t))
-              ((eq (preceding-char) ?\r) (replace-match "\\r" t t))
-              ((eq (preceding-char) ?\t) (replace-match "\\t" t t))
-              ((eq (preceding-char) ?\\) (replace-match "\\\\" t t))))
-      (goto-char (point-min))
-      (if prefix (insert prefix " "))
-      (insert (if multi-line "\"\"\n\"" "\""))
-      (goto-char (point-max))
-      (insert "\"")
-      (if prefix (insert "\n"))
-      (if obsolete
-          (progn
-            (goto-char (point-min))
-            (while (not (eobp))
-              (or (eq (following-char) ?\n) (insert "#~ "))
-              (search-forward "\n"))))
-      (buffer-string))))
+  (k-po-with-temp-buffer
+   (if (stringp func)
+       (insert func)
+     (push-mark)
+     (funcall func))
+   (goto-char (point-min))
+   (let ((multi-line (re-search-forward "[^\n]\n+[^\n]" nil t)))
+     (goto-char (point-min))
+     (while (re-search-forward "[\"\a\b\f\n\r\t\\]" nil t)
+       (cond ((eq (preceding-char) ?\") (replace-match "\\\"" t t))
+             ((eq (preceding-char) ?\a) (replace-match "\\a" t t))
+             ((eq (preceding-char) ?\b) (replace-match "\\b" t t))
+             ((eq (preceding-char) ?\f) (replace-match "\\f" t t))
+             ((eq (preceding-char) ?\n)
+              (replace-match (if (or (not multi-line) (eobp))
+                                 "\\n"
+                               "\\n\"\n\"")
+                             t t))
+             ((eq (preceding-char) ?\r) (replace-match "\\r" t t))
+             ((eq (preceding-char) ?\t) (replace-match "\\t" t t))
+             ((eq (preceding-char) ?\\) (replace-match "\\\\" t t))))
+     (goto-char (point-min))
+     (if prefix (insert prefix " "))
+     (insert (if multi-line "\"\"\n\"" "\""))
+     (goto-char (point-max))
+     (insert "\"")
+     (if prefix (insert "\n"))
+     (if obsolete
+         (progn
+           (goto-char (point-min))
+           (while (not (eobp))
+             (or (eq (following-char) ?\n) (insert "#~ "))
+             (search-forward "\n"))))
+     (buffer-string))))
 
 (provide 'k-po-extract)
 
