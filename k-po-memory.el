@@ -24,7 +24,7 @@
 To read this value, use `k-po-memory--db' instead.")
 (defvar k-po-memory--in-transaction nil
   "Whether there is a transaction going on for `k-po-memory' or not.")
-(defconst k-po-memory--version 0)
+(defconst k-po-memory--version 1)
 (defconst k-po-memory--schemata
   '((mapping
      ;; INTEGER PRIMARY KEY is alias for the implicit ROWID, except it won't
@@ -34,7 +34,9 @@ To read this value, use `k-po-memory--db' instead.")
      ;; We could dedupe this later.
      "source text"
      "target text"
-     "file text")))
+     "file text"
+     "source_lang text"
+     "target_lang text")))
 
 (defmacro k-po-memory--with-transaction (&rest body)
   "Run BODY in a transaction for the `k-po-memory' database.
@@ -89,9 +91,10 @@ for each column."
       (cl-return k-po-memory--version))
     (unless new
       (setq new (1+ old)))
-    ;; (pcase (list old new)
-    ;;   ('(1 2)
-    ;;    (k-po-memory--execute "drop table goals_old")))
+    (pcase (list old new)
+      ('(0 1)
+       (k-po-memory--execute "ALTER TABLE mapping ADD COLUMN source_lang TEXT;")
+       (k-po-memory--execute "ALTER TABLE mapping ADD COLUMN target_lang TEXT;")))
     new))
 (cl-defun k-po-memory--db ()
   "Return an open database, initializing if necessary."
@@ -137,13 +140,19 @@ for each column."
          "Migration complete")))
     db))
 
-(defun k-po-memory-insert-entry (entry file)
-  "Insert ENTRY from FILE into the translation memory."
+(defun k-po-memory-insert-entry (entry file source-lang target-lang)
+  "Insert ENTRY from FILE into the translation memory.
+SOURCE-LANG and TARGET-LANG are languages of the source text and
+target text, respectively."
   (k-po-memory--execute
-   "insert or replace into \"mapping\" (source,target,file) values (?,?,?)"
+   "insert or replace
+into \"mapping\" (source,target,file,source_lang,target_lang)
+values (?,?,?)"
    (k-po-entry-msgid entry)
    (k-po-entry-msgstr entry)
-   file))
+   file
+   source-lang
+   target-lang))
 
 (defun k-po-memory--insert-current-file ()
   "Insert every entry from the current file into the translation memory."
@@ -155,7 +164,9 @@ for each column."
      (lambda (entry)
        (when (and (not (k-po-entry-header? entry))
                   (k-po-entry-type? entry 'translated))
-         (k-po-memory-insert-entry entry (buffer-file-name))))
+         (let ((source-lang (k-po-current-source-language))
+               (target-lang (k-po-current-target-language)))
+           (k-po-memory-insert-entry entry (buffer-file-name) source-lang target-lang))))
      (make-progress-reporter "Inserting translation memory..." 1 (point-max)))))
 
 (defun k-po-memory--insert-file (file)
