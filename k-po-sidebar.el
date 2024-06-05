@@ -86,14 +86,21 @@ Has an effect if and only if `k-po-sidebar-position' is `top' or `bottom'."
   (setq-local word-wrap nil)
   (setq-local truncate-lines nil))
 
+(defun k-po-sidebar--insert-heading (string)
+  "Insert STRING as a heading."
+  (insert
+   (faceup-render-string
+    (format "«k:#» «B:%s»\n" string))))
+
 (defun k-po-sidebar--buffer-update (source-buffer)
   "Update the sidebar buffer contents for SOURCE-BUFFER.
 SOURCE-BUFFER is the PO file buffer."
   (with-current-buffer k-po-sidebar-buffer-name
     (let ((inhibit-read-only t)
-          msgid)
+          msgid target-lang)
       (with-current-buffer source-buffer
         (let ((entry (k-po-current-entry)))
+          (setq target-lang (k-po-current-target-language))
           (setq msgid (k-po-entry-msgid entry))))
       (erase-buffer)
       (insert (propertize "Stats" 'face 'bold))
@@ -108,9 +115,12 @@ SOURCE-BUFFER is the PO file buffer."
                                  k-po-fuzzy-counter
                                  k-po-untranslated-counter)
                               1.0)))))
-      (insert (propertize "Translation Memory\n" 'face 'bold))
+      (k-po-sidebar--insert-heading "Other languages")
       (insert "\n")
-      (let ((mapping (k-po-memory-get msgid)))
+      (insert "TODO\n\n")
+      (k-po-sidebar--insert-heading "Translation Memory")
+      (insert "\n")
+      (let ((mapping (k-po-memory-get msgid target-lang)))
         (if (not mapping)
             (insert (propertize "None" 'face 'italic))
           (pcase-dolist (`(,source ,target ,count) mapping)

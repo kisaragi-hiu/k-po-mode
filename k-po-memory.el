@@ -224,15 +224,15 @@ If SILENCE, don\\='t show the progress reporter."
                 (> (elt a 2)
                    (elt b 2))))))
 
-(defun k-po-memory-get (msgid)
+(defun k-po-memory-get (msgid target-lang)
   "Return the target texts for MSGID.
 The value is a list of rows, where each row is (SOURCE TARGET COUNT)."
   (k-po-memory--rows-count-group
    (k-po-memory--select
     "SELECT source, target
 FROM mapping
-WHERE source = ?"
-    msgid)))
+WHERE source = ? AND target_lang = ?"
+    msgid target-lang)))
 
 (defun k-po-memory-get-prefix (prefix)
   "Return the target texts whose source text starts with PREFIX.
