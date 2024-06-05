@@ -1,7 +1,7 @@
-# Emacs Lisp project template
+# k-po-mode
 
-1. `npx degit kisaragi-hiu/template-elisp`
-2. Rename `k-po-mode.el` and definitions inside to the real package name
-3. Replace license and license header with what you're actually using
+A po-mode fork.
 
-Also see <https://gitlab.com/kisaragi-hiu/tst.el>, which uses ERT and ert-runner instead of buttercup, and GitLab CI instead of GitHub Actions.
+I first forked since po-mode gave me “a bunch of errors” (I wrote that but I don't remember what errors) and I patched it enough that it works.
+
+Right now I'm playing with adding Lokalize-like features, such as project (or language)-wide translation memory.
