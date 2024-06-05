@@ -147,26 +147,27 @@ target text, respectively."
   (k-po-memory--execute
    "insert or replace
 into \"mapping\" (source,target,file,source_lang,target_lang)
-values (?,?,?)"
+values (?,?,?,?,?)"
    (k-po-entry-msgid entry)
    (k-po-entry-msgstr entry)
    file
    source-lang
    target-lang))
 
-(defun k-po-memory--insert-current-file ()
-  "Insert every entry from the current file into the translation memory."
-  (k-po-memory--with-transaction
-    (k-po-memory--execute
-     "delete from mapping where file = ?"
-     (buffer-file-name))
-    (k-po-map-entries
-     (lambda (entry)
-       (when (and (not (k-po-entry-header? entry))
-                  (k-po-entry-type? entry 'translated))
-         (let ((source-lang (k-po-current-source-language))
-               (target-lang (k-po-current-target-language)))
-           (k-po-memory-insert-entry entry (buffer-file-name) source-lang target-lang))))
+(defun k-po-memory--insert-current-file (&optional silence)
+  "Insert every entry from the current file into the translation memory.
+If SILENCE, don\\='t show the progress reporter."
+  (k-po-memory--execute
+   "delete from mapping where file = ?"
+   (buffer-file-name))
+  (k-po-map-entries
+   (lambda (entry)
+     (when (and (not (k-po-entry-header? entry))
+                (k-po-entry-type? entry 'translated))
+       (let ((source-lang (k-po-current-source-language))
+             (target-lang (k-po-current-target-language)))
+         (k-po-memory-insert-entry entry (buffer-file-name) source-lang target-lang))))
+   (unless silence
      (make-progress-reporter "Inserting translation memory..." 1 (point-max)))))
 
 (defun k-po-memory--insert-file (file)
@@ -177,7 +178,7 @@ values (?,?,?)"
     (setq buffer-file-name (file-truename file))
     (unwind-protect
         (let ((inhibit-message t))
-          (k-po-memory--insert-current-file))
+          (k-po-memory--insert-current-file :silence))
       ;; Do not ever ask me to save the temporary buffer
       (setq buffer-file-name nil))))
 
@@ -189,12 +190,13 @@ values (?,?,?)"
          (i 0)
          (total (length files)))
     (message "Collecting translation memory...")
-    (dolist (file files)
-      (cl-incf i)
-      (k-po-memory--insert-file file)
-      (message "Collecting translation memory (%s/%s)... (%s)"
-               i total
-               (file-relative-name file dir)))
+    (k-po-memory--with-transaction
+      (dolist (file files)
+        (cl-incf i)
+        (message "Collecting translation memory (%s/%s)... (%s)"
+                 i total
+                 (file-relative-name file dir))
+        (k-po-memory--insert-file file)))
     (message "Collecting translation memory...done")))
 
 (defun k-po-memory-clear ()
