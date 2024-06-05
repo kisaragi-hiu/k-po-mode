@@ -571,14 +571,23 @@ This currently always returns English (\"en\")."
 
 (defun k-po-current-target-language ()
   "Return the target language code of the current file."
-  (let ((header (k-po-goto-header)))
-    ;; If we don't find a header, blow up
-    (unless header
-      (error "No header found in current file!"))
-    ;; We *should* find a language field. Let re-search-forward error.
-    (re-search-forward "^\"Language: +\\(.*\\)\\\\n\"$" (cdr header))
-    (cdr (assoc (match-string 1)
-                k-po-team-name-to-code))))
+  (save-excursion
+    (let ((header (k-po-goto-header)))
+      ;; If we don't find a header, blow up
+      (unless header
+        (error "No header found in current file!"))
+      ;; We *should* find a language field. Let re-search-forward error.
+      (re-search-forward (rx bol "\""
+                             (opt (group "X-")) ; some files have "X-Language"
+                             "Language:" (one-or-more " ")
+                             (group (zero-or-more nonl))
+                             ;; A backslash and an in the po file
+                             "\\n\"" eol)
+                         (cdr header))
+      (let ((pair (or (assoc (match-string 2) k-po-team-name-to-code)
+                      ;; For if the value is the code itself
+                      (rassoc (match-string 2) k-po-team-name-to-code))))
+        (cdr pair)))))
 
 
 ;;; Handling span of entry, entry type and entry attributes.
