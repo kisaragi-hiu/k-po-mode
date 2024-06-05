@@ -557,6 +557,30 @@ Can be customized with the `k-po-auto-update-file-header' variable."
   ;; Return nil to indicate that the buffer has not yet been saved.
   nil)
 
+;;; "Current-*" functions
+
+(defun k-po-current-entry ()
+  "Return the current entry at point, as an entry object."
+  (k-po-find-span-of-entry)
+  (k-po--entry-from-vars))
+
+(defun k-po-current-source-language ()
+  "Return the source language code of the current file.
+This currently always returns English (\"en\")."
+  "en")
+
+(defun k-po-current-target-language ()
+  "Return the target language code of the current file."
+  (let ((header (k-po-goto-header)))
+    ;; If we don't find a header, blow up
+    (unless header
+      (error "No header found in current file!"))
+    ;; We *should* find a language field. Let re-search-forward error.
+    (re-search-forward "^\"Language: +\\(.*\\)\\\\n\"$" (cdr header))
+    (cdr (assoc (match-string 1)
+                k-po-team-name-to-code))))
+
+
 ;;; Handling span of entry, entry type and entry attributes.
 
 ;; TODO: Return an entry object, not this.
@@ -652,11 +676,6 @@ fuzzy, untranslated, or translated."
                 'translated))))
     ;; Put the cursor back where it was.
     (goto-char here)))
-
-(defun k-po-current-entry ()
-  "Return the current entry at point, as an entry object."
-  (k-po-find-span-of-entry)
-  (k-po--entry-from-vars))
 
 (defun k-po-add-attribute (name)
   "Add attribute NAME to the current entry, unless it is already there."
