@@ -133,7 +133,7 @@ MSGID, TARGET-LANG, and SOURCE-BUFFER are passed in from the update function."
   (k-po-sidebar--insert-heading "Stats")
   (insert (with-current-buffer source-buffer
             (faceup-render-string
-             (format "translated: %s/%s (%.2f%%)\nfuzzy: %s\nuntranslated: %s"
+             (format "translated: %s/%s (%.2f%%)\nfuzzy: %s\nuntranslated: %s\nobsolete: %s"
                      k-po-translated-counter
                      (+ k-po-translated-counter
                         k-po-fuzzy-counter
@@ -145,7 +145,8 @@ MSGID, TARGET-LANG, and SOURCE-BUFFER are passed in from the update function."
                               k-po-untranslated-counter)
                            1.0))
                      k-po-fuzzy-counter
-                     k-po-untranslated-counter)))))
+                     k-po-untranslated-counter
+                     k-po-obsolete-counter)))))
 
 (defun k-po-sidebar--widget--other-languages (msgid target-lang _source-buffer)
   "Insert the other languages widget.

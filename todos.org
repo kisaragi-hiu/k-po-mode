@@ -1,0 +1,9 @@
+* Views
+- [ ] List of files in a project
+- [ ] List of entries in a file
+- [X] A file's raw content
+- [X] Entry msgstr editor
+** k-po-info
+- [ ] Current entry: matching glossary items
+- [X] Current entry: matching TM entries
+- [X] Current entry: other languages
