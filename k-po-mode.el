@@ -1285,7 +1285,7 @@ The fields are msgctxt, msgid, and msgid_plural (marked as #| comments)."
       (when slot
         (goto-char marker)
         (pop-to-buffer (nth 1 slot))
-        (message k-po-subedit-message))
+        (message "%s" (substitute-command-keys k-po-subedit-message)))
       (not slot))))
 
 (defun k-po-edit-out-full ()
@@ -1474,7 +1474,7 @@ Run functions on k-po-subedit-mode-hook."
                 k-po-subedit-mode-menu-layout))
           (set-syntax-table k-po-subedit-mode-syntax-table)
           (run-hooks 'k-po-subedit-mode-hook)
-          (message k-po-subedit-message)))))
+          (message "%s" (substitute-command-keys k-po-subedit-message))))))
 
 (defun k-po-edit-comment ()
   "Use another window to edit the current translator comment."
