@@ -12,6 +12,7 @@
 
 (declare-function k-po-current-entry "k-po-mode")
 (declare-function k-po-set-msgstr-form "k-po-mode")
+(declare-function k-po-current-target-language "k-po-mode")
 (declare-function k-po-jump-to-entry "k-po-mode")
 
 (defcustom k-po-sidebar-position 'right
@@ -56,6 +57,21 @@ Has an effect if and only if `k-po-sidebar-position' is `top' or `bottom'."
   :type '(alist)
   :group 'k-po)
 
+(defcustom k-po-sidebar-widgets
+  '(stats other-languages translation-memory)
+  "Widgets to be shown in the sidebar.
+
+Values are either functions that insert the widget into the
+sidebar buffer, or symbols that, when added onto the prefix
+\"k-po-sidebar--widget--\", refer to an existing function that
+does the same.
+
+Each function receives three inputs: the msgid of the current
+entry, the target language of the current file, and the source
+file buffer."
+  :type '(repeat symbol)
+  :group 'k-po)
+
 (defvar k-po-sidebar--current-file nil
   "The file the sidebar is currently displaying info for.")
 
@@ -90,7 +106,103 @@ Has an effect if and only if `k-po-sidebar-position' is `top' or `bottom'."
   "Insert STRING as a heading."
   (insert
    (faceup-render-string
-    (format "«k:#» «B:%s»\n" string))))
+    (format "«k:#» «B:%s»\n" string))
+   "\n"))
+
+(cl-defmacro k-po-sidebar--insert-button (label arguments &rest body)
+  "Insert a text button with LABEL that, when clicked, runs BODY.
+
+Buttons inserted with this command are styled like ones that run
+commands.
+
+ARGUMENTS is a plist containing the button\\='s properties. Keys can
+be given as keywords, they will be converted to symbols."
+  (declare (indent 2))
+  (cl-with-gensyms (args-sym)
+    `(let ((,args-sym
+            ;; values in ARGUMENTS should be evaluated
+            (list ,@arguments)))
+       (unless (plist-get ,args-sym 'type)
+         (setq ,args-sym (plist-put ,args-sym 'type 'button)))
+       (setq ,args-sym (plist-put ,args-sym 'action (lambda (&rest _) ,@body)))
+       (apply #'insert-text-button (format "%s" ,label) ,args-sym))))
+
+(defun k-po-sidebar--widget--stats (_msgid _target-lang source-buffer)
+  "Insert the stats of the entry.
+MSGID, TARGET-LANG, and SOURCE-BUFFER are passed in from the update function."
+  (k-po-sidebar--insert-heading "Stats")
+  (insert (with-current-buffer source-buffer
+            (faceup-render-string
+             (format "translated: %s/%s (%.2f%%)\nfuzzy: %s\nuntranslated: %s"
+                     k-po-translated-counter
+                     (+ k-po-translated-counter
+                        k-po-fuzzy-counter
+                        k-po-untranslated-counter)
+                     (* 100
+                        (/ k-po-translated-counter
+                           (+ k-po-translated-counter
+                              k-po-fuzzy-counter
+                              k-po-untranslated-counter)
+                           1.0))
+                     k-po-fuzzy-counter
+                     k-po-untranslated-counter)))))
+
+(defun k-po-sidebar--widget--other-languages (msgid target-lang _source-buffer)
+  "Insert the other languages widget.
+MSGID, TARGET-LANG, and SOURCE-BUFFER are passed in from the update function."
+  (k-po-sidebar--insert-heading "Other languages")
+  (let ((mapping (k-po-memory--rows-count-group
+                  (k-po-memory--select
+                   "SELECT target, target_lang
+FROM mapping
+WHERE source = ? AND NOT target_lang = ?
+LIMIT 5"
+                   msgid target-lang))))
+    (if (not mapping)
+        (insert (propertize "None" 'face 'italic))
+      (insert
+       (string-join
+        (mapcar (pcase-lambda (`(,target ,lang))
+                  (faceup-render-string
+                   (format "«B:%s» «I:%s»"
+                           target
+                           (car (rassoc lang k-po-team-name-to-code)))))
+                mapping)
+        "\n")))))
+
+(defun k-po-sidebar--widget--translation-memory (msgid target-lang source-buffer)
+  "Insert the translation memory languages widget.
+MSGID, TARGET-LANG, and SOURCE-BUFFER are passed in from the update function."
+  (k-po-sidebar--insert-heading "Translation Memory")
+  (let ((mapping (k-po-memory-get msgid target-lang)))
+    (if (not mapping)
+        (insert (propertize "None" 'face 'italic))
+      (pcase-dolist (`(,source ,target ,count) mapping)
+        (insert (propertize
+                 (format "(%sx) %s\n"
+                         count
+                         target)
+                 'face 'bold))
+        (k-po-sidebar--insert-button "Use" nil
+          (with-current-buffer source-buffer
+            (k-po-set-msgstr-form target)))
+        (insert "\n")
+        (k-po-sidebar--insert-button "Copy" nil
+          (kill-new target)
+          (message "Copied \"%s\"..." target))
+        (let ((files (remove (buffer-file-name source-buffer)
+                             (k-po-memory--get-files source target))))
+          (when files
+            (insert "\n")
+            (insert-text-button
+             "Visit file"
+             'face 'button
+             'action (lambda (&rest _)
+                       (if (= 1 (length files))
+                           (find-file (car files))
+                         (find-file (completing-read "Which file: " files)))
+                       (k-po-jump-to-entry source target)))))
+        (insert "\n\n")))))
 
 (defun k-po-sidebar--buffer-update (source-buffer)
   "Update the sidebar buffer contents for SOURCE-BUFFER.
@@ -103,59 +215,32 @@ SOURCE-BUFFER is the PO file buffer."
           (setq target-lang (k-po-current-target-language))
           (setq msgid (k-po-entry-msgid entry))))
       (erase-buffer)
-      (insert (propertize "Stats" 'face 'bold))
-      (insert (with-current-buffer source-buffer
-                (format ": %s translated, %s fuzzy, %s untranslated (%.2f%%)\n\n"
-                        k-po-translated-counter
-                        k-po-fuzzy-counter
-                        k-po-untranslated-counter
-                        (* 100
-                           (/ k-po-translated-counter
-                              (+ k-po-translated-counter
-                                 k-po-fuzzy-counter
-                                 k-po-untranslated-counter)
-                              1.0)))))
-      (k-po-sidebar--insert-heading "Other languages")
-      (insert "\n")
-      (insert "TODO\n\n")
-      (k-po-sidebar--insert-heading "Translation Memory")
-      (insert "\n")
-      (let ((mapping (k-po-memory-get msgid target-lang)))
-        (if (not mapping)
-            (insert (propertize "None" 'face 'italic))
-          (pcase-dolist (`(,source ,target ,count) mapping)
-            (insert (propertize
-                     (format "%s\n(%sx) %s\n"
-                             source
-                             count
-                             target)
-                     'face 'bold))
-            (insert-text-button
-             "Use this translation"
-             'face 'button
-             'action (lambda (&rest _)
-                       (with-current-buffer source-buffer
-                         (k-po-set-msgstr-form target))))
-            (insert "\n")
-            (insert-text-button
-             "Copy"
-             'face 'button
-             'action (lambda (&rest _)
-                       (kill-new target)
-                       (message "Copied \"%s\"..." target)))
-            (let ((files (remove (buffer-file-name source-buffer)
-                                 (k-po-memory--get-files source target))))
-              (when files
-                (insert "\n")
-                (insert-text-button
-                 "Visit file"
-                 'face 'button
-                 'action (lambda (&rest _)
-                           (if (= 1 (length files))
-                               (find-file (car files))
-                             (find-file (completing-read "Which file: " files)))
-                           (k-po-jump-to-entry source target)))))
-            (insert "\n\n")))))))
+      ;; Special case for header
+      (if (equal msgid "")
+          (progn
+            (insert (faceup-render-string
+                     (format "«B:%s»\n\n"
+                             (file-name-nondirectory
+                              (buffer-file-name source-buffer)))))
+            (k-po-sidebar--widget--stats msgid target-lang source-buffer))
+        (insert (faceup-render-string
+                 (format "«B:%s»\n\n" msgid)))
+        (let ((i 0)
+              (l (length k-po-sidebar-widgets)))
+          (dolist (widget k-po-sidebar-widgets)
+            (cl-incf i)
+            (catch 'continue
+              (cond ((functionp widget)
+                     (funcall widget
+                              msgid target-lang source-buffer))
+                    ((functionp (intern-soft (format "k-po-sidebar--widget--%s" widget)))
+                     (funcall (intern-soft (format "k-po-sidebar--widget--%s" widget))
+                              msgid target-lang source-buffer))
+                    (t
+                     (message "(k-po-mode) Warning: %s is not a sidebar widget" widget)
+                     (throw 'continue t)))
+              (unless (>= i l)
+                (insert "\n\n")))))))))
 
 (defun k-po-sidebar--post-command-h ()
   "Hook function for updating the sidebar buffer in `post-command-hook'."

@@ -200,6 +200,13 @@ If SILENCE, don\\='t show the progress reporter."
         (k-po-memory--insert-file file)))
     (message "Collecting translation memory...done")))
 
+(defun k-po-memory-insert-current-file ()
+  "Insert entries from the current file into TM.
+This is for interactive use only."
+  (interactive)
+  (k-po-memory--with-transaction
+    (k-po-memory--insert-current-file nil)))
+
 (defun k-po-memory-clear ()
   "Clear the translation memory."
   (interactive)
