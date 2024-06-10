@@ -252,6 +252,63 @@ FROM mapping
 WHERE instr(source, ?) = 1"
     prefix)))
 
+(defun k-po-memory-get-contains (needle target-lang)
+  "Return the target texts in TARGET-LANG whose source text contains NEEDLE.
+The value is a list of rows, where each row is (SOURCE TARGET COUNT)."
+  (k-po-memory--rows-count-group
+   (k-po-memory--select
+    "SELECT source, target
+FROM mapping
+WHERE instr(source, ?) AND target_lang = ?"
+    needle
+    target-lang)))
+
+(defun k-po-memory--jump-to-file-entry (source target &optional cands)
+  "Jump to a location of an entry with SOURCE and TARGET in TM.
+If there is more than one file, this will prompt the user to select one.
+
+If CANDS is non-nil, use that as the candidate list instead of
+retrieving from the DB again."
+  (let ((files (or cands (k-po-memory--get-files source target))))
+    (when files
+      (if (= 1 (length files))
+          (find-file (car files))
+        (find-file (completing-read "Which file: " files nil t)))
+      (k-po-jump-to-entry source target))))
+
+(defun k-po-memory-search (needle)
+  "Search for NEEDLE for the current language in TM."
+  (interactive "MSearch for: ")
+  (let ((target-lang (or k-po-view--local
+                         (k-po-current-target-language))))
+    (with-current-buffer (pop-to-buffer
+                          (get-buffer-create
+                           (format "*k-po-mode search: %s*" needle)))
+      ;; Bit of a hack to remember the target language without holding a
+      ;; reference to the starting buffer.
+      (setq-local k-po-view--local target-lang)
+      (setq-local buffer-undo-list t)
+      (setq-local revert-buffer-function (lambda (&rest _)
+                                           (k-po-memory-search needle)))
+      (read-only-mode)
+      (let ((inhibit-read-only t)
+            (mapping (k-po-memory-get-contains needle target-lang)))
+        (erase-buffer)
+        (insert (format "Search started at %s\n" (current-time-string))
+                (faceup-render-string
+                 (format "Searching for «I:%s» in «I:%s»\n\n" needle target-lang)))
+        (pcase-dolist (`(,source ,target ,count) mapping)
+          (insert
+           (faceup-render-string
+            (format "source: «B:%s»\ntarget: «B:%s» («I:%sx»)\n" source target count)))
+          (k-po-view--insert-button "Visit file" nil
+            (k-po-memory--jump-to-file-entry source target))
+          (insert " ")
+          (k-po-view--insert-button "Copy target" nil
+            (k-po-view--copy target))
+          (insert "\n\n"))
+        (insert (format "Found %s entries." (length mapping)))))))
+
 (defun k-po-memory--get-files (source target)
   "Return the files who have mapped SOURCE to TARGET."
   (mapcar #'car

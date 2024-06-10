@@ -7,6 +7,7 @@
 
 ;;; Code:
 
+(require 'k-po-view)
 (require 'k-po-entry)
 (require 'k-po-memory)
 
@@ -109,24 +110,6 @@ file buffer."
     (format "«k:#» «B:%s»\n" string))
    "\n"))
 
-(cl-defmacro k-po-sidebar--insert-button (label arguments &rest body)
-  "Insert a text button with LABEL that, when clicked, runs BODY.
-
-Buttons inserted with this command are styled like ones that run
-commands.
-
-ARGUMENTS is a plist containing the button\\='s properties. Keys can
-be given as keywords, they will be converted to symbols."
-  (declare (indent 2))
-  (cl-with-gensyms (args-sym)
-    `(let ((,args-sym
-            ;; values in ARGUMENTS should be evaluated
-            (list ,@arguments)))
-       (unless (plist-get ,args-sym 'type)
-         (setq ,args-sym (plist-put ,args-sym 'type 'button)))
-       (setq ,args-sym (plist-put ,args-sym 'action (lambda (&rest _) ,@body)))
-       (apply #'insert-text-button (format "%s" ,label) ,args-sym))))
-
 (defun k-po-sidebar--widget--stats (_msgid _target-lang source-buffer)
   "Insert the stats of the entry.
 MSGID, TARGET-LANG, and SOURCE-BUFFER are passed in from the update function."
@@ -184,13 +167,12 @@ MSGID, TARGET-LANG, and SOURCE-BUFFER are passed in from the update function."
                          count
                          target)
                  'face 'bold))
-        (k-po-sidebar--insert-button "Use" nil
+        (k-po-view--insert-button "Use" nil
           (with-current-buffer source-buffer
             (k-po-set-msgstr-form target)))
         (insert "\n")
-        (k-po-sidebar--insert-button "Copy" nil
-          (kill-new target)
-          (message "Copied \"%s\"..." target))
+        (k-po-view--insert-button "Copy" nil
+          (k-po-view--copy target))
         (let ((files (remove (buffer-file-name source-buffer)
                              (k-po-memory--get-files source target))))
           (when files
@@ -199,10 +181,7 @@ MSGID, TARGET-LANG, and SOURCE-BUFFER are passed in from the update function."
              "Visit file"
              'face 'button
              'action (lambda (&rest _)
-                       (if (= 1 (length files))
-                           (find-file (car files))
-                         (find-file (completing-read "Which file: " files)))
-                       (k-po-jump-to-entry source target)))))
+                       (k-po-memory--jump-to-file-entry source target files)))))
         (insert "\n\n")))))
 
 (defun k-po-sidebar--buffer-update (source-buffer)
@@ -245,8 +224,10 @@ SOURCE-BUFFER is the PO file buffer."
 
 (defun k-po-sidebar--post-command-h ()
   "Hook function for updating the sidebar buffer in `post-command-hook'."
-  (when (k-po-sidebar--visible?)
-    (k-po-sidebar--buffer-update (window-buffer))))
+  (when (and (k-po-sidebar--visible?)
+             (derived-mode-p 'k-po-mode))
+    (ignore-errors
+      (k-po-sidebar--buffer-update (window-buffer)))))
 
 (defun k-po-sidebar-toggle ()
   "Toggle display of the sidebar."
