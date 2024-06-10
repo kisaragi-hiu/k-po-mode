@@ -245,7 +245,7 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
 (defconst k-po-font-lock-keywords
   '(
     ("^# .*\\|^#[:,]?" . font-lock-comment-face)
-    ("^#:\\(.*\\)" 1 font-lock-reference-face)
+    ("^#:\\(.*\\)" 1 font-lock-constant-face)
     ("^#,\\(.*\\)" 1 font-lock-function-name-face)
     ("^\\(\\(msg\\(ctxt\\|id\\(_plural\\)?\\|str\\(\\[[0-9]\\]\\)?\\)\\) \\)?\"\\|\"$"
      . font-lock-keyword-face)
