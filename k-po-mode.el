@@ -337,6 +337,7 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
 
   (k-po-check-file-header)
   (k-po-compute-counters nil)
+  (k-po-memory-insert-current-file)
 
   (setq-local k-po-edited-fields nil)
   (setq-local k-po-marker-stack nil)

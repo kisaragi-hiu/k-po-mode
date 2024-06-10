@@ -202,7 +202,8 @@ If SILENCE, don\\='t show the progress reporter."
 
 (defun k-po-memory-insert-current-file ()
   "Insert entries from the current file into TM.
-This is for interactive use only."
+The difference with `k-po-memory--insert-current-file' is that
+this is wrapped in a transaction and is interactive."
   (interactive)
   (k-po-memory--with-transaction
     (k-po-memory--insert-current-file nil)))
