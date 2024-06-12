@@ -957,22 +957,27 @@ no entries of the other types."
 
 ;;; Killing and yanking fields.
 
-(defun k-po-set-msgid (func)
-  "Replace the current msgid, using FUNC to get a string.
+(defun k-po-set-msgid (func &optional entry)
+  "Set the msgid of the entry at point, using FUNC to get a string.
 Calling FUNC should insert the wanted string in the current
 buffer. If FUNC is itself a string, then this string is used for
 insertion. The string is properly requoted before the replacement
 occurs.
 
+If ENTRY is non-nil, use that instead of getting the entry at
+point again.
+
 Return nil if the buffer has not been modified, for if the new msgid
 described by CALL is merely identical to the msgid already in place."
-  (let ((string (k-po-call-requoted func "msgid" (eq k-po-entry-type 'obsolete))))
+  (unless entry
+    (setq entry (k-po-current-entry)))
+  (let ((string (k-po-call-requoted func "msgid" (k-po-entry-type? entry 'obsolete))))
     (save-excursion
-      (goto-char k-po-start-of-entry)
-      (re-search-forward k-po-any-msgid-regexp k-po-start-of-msgstr-block)
+      (goto-char (oref entry start))
+      (re-search-forward k-po-any-msgid-regexp (oref entry msgstr-block-start))
       (and (not (string-equal (match-string-no-properties 0) string))
            (replace-match string t t)
-           (goto-char k-po-start-of-msgid)
+           (goto-char (oref entry msgid-start))
            (k-po-find-span-of-entry)
            t))))
 
@@ -1359,10 +1364,10 @@ the ediff control panel."
     (k-po-subedit-abort)
     (let ((entry (k-po-current-entry)))
       (cond ((= (point) (k-po-entry-msgid-start entry))
-             (k-po-set-comment str)
+             (k-po-set-comment str entry)
              (k-po-redisplay))
             ((= (point) (k-po-entry-msgstr-form-start entry))
-             (when (k-po-set-msgstr-form str)
+             (when (k-po-set-msgstr-form str entry)
                (k-po-maybe-delete-previous-untranslated)
                (when (and k-po-auto-fuzzy-on-edit
                           (k-po-entry-type? entry 'translated))
@@ -1486,8 +1491,12 @@ To minibuffer messages sent while normalizing, add the EXPLAIN string."
         (message "Normalizing %d, %s" counter explain))
       (goto-char (match-beginning 0))
       (setq entry (k-po-current-entry))
-      (cond ((eq field 'msgid) (k-po-set-msgid (k-po-entry-msgid entry)))
-            ((eq field 'msgstr) (k-po-set-msgstr-form (k-po-entry-msgstr entry))))
+      (cond ((eq field 'msgid) (k-po-set-msgid
+                                (k-po-entry-msgid entry)
+                                entry))
+            ((eq field 'msgstr) (k-po-set-msgstr-form
+                                 (k-po-entry-msgstr entry)
+                                 entry)))
       (goto-char (k-po-entry-end entry))
       (setq counter (1+ counter)))
     (goto-char here)
