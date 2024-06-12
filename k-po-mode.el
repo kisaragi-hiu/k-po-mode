@@ -2252,7 +2252,7 @@ Leave point after marked string."
       ;; Remember the outcome.
       (setq k-po-msgfmt-version-checked t))
 
-     (error "'msgfmt' from GNU gettext 0.10.36 or greater is required"))))
+     (error "`msgfmt' from GNU gettext 0.10.36 or greater is required"))))
 
 (defun k-po-guess-archive-name ()
   "Return the ideal file name for this PO file in the central archives."
