@@ -550,6 +550,20 @@ Can be customized with the `k-po-auto-update-file-header' variable."
 
 ;;; "Current-*" functions
 
+(defun k-po--language->code (language)
+  "Return the language code for LANGUAGE."
+  (let ((pair (or (assoc language k-po-team-name-to-code)
+                  ;; For if the value is the code itself
+                  (rassoc language k-po-team-name-to-code))))
+    (cdr pair)))
+
+(defun k-po--language<-code (code)
+  "Return the name for the language identified by CODE."
+  (let ((pair (or (assoc code k-po-team-name-to-code)
+                  ;; For if the value is the code itself
+                  (rassoc code k-po-team-name-to-code))))
+    (car pair)))
+
 (defun k-po-current-source-language ()
   "Return the source language code of the current file.
 This currently always returns English (\"en\")."
@@ -570,10 +584,7 @@ This currently always returns English (\"en\")."
                              ;; A backslash and an in the po file
                              "\\n\"" eol)
                          (cdr header))
-      (let ((pair (or (assoc (match-string 2) k-po-team-name-to-code)
-                      ;; For if the value is the code itself
-                      (rassoc (match-string 2) k-po-team-name-to-code))))
-        (cdr pair)))))
+      (k-po--language->code (match-string 2)))))
 
 
 ;;; Handling span of entry, entry type and entry attributes.

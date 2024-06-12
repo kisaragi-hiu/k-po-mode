@@ -149,7 +149,7 @@ LIMIT 5"
                   (faceup-render-string
                    (format "«B:%s» «I:%s»"
                            target
-                           (car (rassoc lang k-po-team-name-to-code)))))
+                           (k-po--language<-code lang))))
                 mapping)
         "\n")))))
 

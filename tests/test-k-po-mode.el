@@ -8,8 +8,11 @@
 (require 'k-po-mode)
 (require 'buttercup)
 
-(describe "hello"
-  (it "says hello"
-    (expect (k-po-mode-hello-world)
+(describe "language code"
+  (it "works"
+    (expect (k-po--language->code "English")
             :to-equal
-            "Hello world!")))
+            "en")
+    (expect (k-po--language<-code "ja")
+            :to-equal
+            "Japanese")))
