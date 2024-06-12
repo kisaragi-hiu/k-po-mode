@@ -9,6 +9,6 @@ $(ELC): .cask $(wildcard *.el)
 compile: $(ELC)
 
 test: .cask
-	cask exec buttercup tests/
+	cask emacs -batch -L . -f buttercup-run-discover
 
 .PHONY: test compile
