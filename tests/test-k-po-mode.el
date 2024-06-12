@@ -3,6 +3,8 @@
 (when (require 'undercover nil t)
   (undercover "*.el"))
 
+(setq user-emacs-directory (make-temp-file "test-k-po-mode" t))
+
 (require 'k-po-mode)
 (require 'buttercup)
 
@@ -13,7 +15,9 @@
   `(progn
      (unless (file-exists-p ,file)
        (error "%s does not exist" ,(file-truename file)))
-     (with-current-buffer (find-file-noselect ,file)
+     (with-current-buffer (let ((inhibit-message t))
+                            (find-file-noselect ,file))
+       (goto-char (point-min))
        ,@body)))
 
 (describe "language code"
@@ -30,4 +34,16 @@
     (test--with-fixture "fixtures/a.po"
       (expect (k-po-current-target-language)
               :to-equal
-              "zh_TW"))))
+              "zh_TW")))
+  (it "gets basic entry values"
+    (test--with-fixture "fixtures/a.po"
+      (k-po-next-entry)
+      (expect (k-po-current-entry)
+              :to-equal
+              #s(k-po-entry 524 553 568 nil 582 582 593 593 translated))
+      (expect (k-po-entry-msgid (k-po-current-entry))
+              :to-equal
+              "Hello")
+      (expect (k-po-entry-msgstr (k-po-current-entry))
+              :to-equal
+              "嗨"))))
