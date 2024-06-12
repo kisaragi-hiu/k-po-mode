@@ -414,7 +414,7 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
   "Increase the counter corresponding to the nature of the current entry.
 Then, update the mode line counters."
   (let ((counter (k-po-type-counter)))
-    (cl-incf counter (symbol-value counter)))
+    (cl-incf (symbol-value counter)))
   (k-po-update-mode-line-string))
 
 (defun k-po-map-entries (func &optional reporter)
