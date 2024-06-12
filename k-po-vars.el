@@ -44,7 +44,7 @@ Value is nil, t, or ask."
   :type 'boolean
   :group 'k-po)
 
-(defcustom k-po-auto-update-file-header 'ask
+(defcustom k-po-auto-update-file-header nil
   "*Automatically revise headers.  Value is nil, t, or ask."
   :type '(choice (const nil)
           (const t)

@@ -492,6 +492,7 @@ Position %d/%d; %d translated, %d fuzzy, %d untranslated, %d obsolete"
 (defun k-po-check-file-header ()
   "Create a missing PO mode file header, or replace an oldish one.
 Can be customized with the `k-po-auto-update-file-header' variable."
+  ;; FIXME: update file header on SAVE not OPEN.
   (if (or (eq k-po-auto-update-file-header t)
           (and (eq k-po-auto-update-file-header 'ask)
                (y-or-n-p "May I update the PO Header Entry? ")))
@@ -516,8 +517,7 @@ Can be customized with the `k-po-auto-update-file-header' variable."
             (when insert-flag
               (insert k-po-default-file-header)
               (if (not (eobp))
-                  (insert "\n"))))))
-    (message "PO Header Entry was not updated...")))
+                  (insert "\n"))))))))
 
 (defun k-po-replace-revision-date ()
   "Replace the revision date by current time in the PO file header."
