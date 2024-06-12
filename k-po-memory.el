@@ -12,7 +12,6 @@
 (require 'k-po-entry)
 
 ;; FIXME: the dependency graph needs fixing
-(declare-function k-po-current-entry "k-po-mode")
 (declare-function k-po-map-entries "k-po-mode")
 
 (defun k-po-memory--file ()

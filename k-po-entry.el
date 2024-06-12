@@ -228,6 +228,11 @@ fuzzy, untranslated, or translated."
               :end k-po-end-of-entry
               :type k-po-entry-type))
 
+(defun k-po-current-entry ()
+  "Return the current entry at point, as an entry object."
+  (k-po-find-span-of-entry)
+  (k-po--entry-from-vars))
+
 ;;;; Extra entry properties
 
 (defun k-po-entry-msgid (entry)

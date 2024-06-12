@@ -11,7 +11,6 @@
 (require 'k-po-entry)
 (require 'k-po-memory)
 
-(declare-function k-po-current-entry "k-po-mode")
 (declare-function k-po-set-msgstr-form "k-po-mode")
 (declare-function k-po-current-target-language "k-po-mode")
 (declare-function k-po-jump-to-entry "k-po-mode")

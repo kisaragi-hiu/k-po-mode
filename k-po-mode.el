@@ -559,11 +559,6 @@ Can be customized with the `k-po-auto-update-file-header' variable."
 
 ;;; "Current-*" functions
 
-(defun k-po-current-entry ()
-  "Return the current entry at point, as an entry object."
-  (k-po-find-span-of-entry)
-  (k-po--entry-from-vars))
-
 (defun k-po-current-source-language ()
   "Return the source language code of the current file.
 This currently always returns English (\"en\")."
