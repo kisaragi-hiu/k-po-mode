@@ -1199,11 +1199,12 @@ The fields are msgctxt, msgid, and msgid_plural (marked as #| comments)."
 
 ;;; Editing management and submode.
 
-;; In a string edit buffer, BACK-POINTER points to one of the slots of the
-;; list EDITED-FIELDS kept in the PO buffer.  See its description elsewhere.
-;; Reminder: slots have the form (ENTRY-MARKER EDIT-BUFFER OVERLAY-INFO).
+(defvar k-po-subedit-back-pointer nil
+  "Points to one of the slots of the po buffer.
 
-(defvar k-po-subedit-back-pointer)
+In a string edit buffer, BACK-POINTER points to one of the slots of the
+list EDITED-FIELDS kept in the PO buffer. See its description elsewhere.
+Reminder: slots have the form (ENTRY-MARKER EDIT-BUFFER OVERLAY-INFO).")
 
 (defun k-po-clean-out-killed-edits ()
   "From EDITED-FIELDS, clean out any edit having a killed edit buffer."
