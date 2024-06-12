@@ -1137,14 +1137,15 @@ If ENTRY is non-nil, use that instead of the current entry."
 (defun k-po-yank-comment ()
   "Replace the current comment string by the top of the kill ring."
   (interactive)
-  (k-po-find-span-of-entry)
-  (k-po-set-comment
-   (lambda ()
-     (if (eq last-command 'yank)
-         (yank-pop 1)
-       (yank))))
-  (setq this-command 'yank)
-  (k-po-redisplay))
+  (let ((entry (k-po-current-entry)))
+    (k-po-set-comment
+     (lambda ()
+       (if (eq last-command 'yank)
+           (yank-pop 1)
+         (yank)))
+     entry)
+    (setq this-command 'yank)
+    (k-po-redisplay entry)))
 
 ;;; Deleting the "previous untranslated" comment.
 
