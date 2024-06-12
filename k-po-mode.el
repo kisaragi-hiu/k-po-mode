@@ -92,11 +92,11 @@ gettext Keyword Marking                            Position Stack
 M-,  Mark translatable    *c    To compendium      r  Pop and return
 M-.  Change mark, mark    *M-C  Select, save       x  Exchange current/top
 
-Program Sources           Auxiliary Files          Lexicography
-s    Cycle reference      a    Cycle file          *l    Lookup translation
-M-s  Select reference     C-c C-a  Select file     *M-l  Add/edit translation
-S    Consider path        A    Consider PO file    *L    Consider lexicon
-M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
+Program Sources           Lexicography
+s    Cycle reference      *l    Lookup translation
+M-s  Select reference     *M-l  Add/edit translation
+S    Consider path        *L    Consider lexicon
+M-S  Ignore path          *M-L  Ignore lexicon
 "
   "Help page for PO mode.")
 
@@ -191,11 +191,6 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
      ;; ["To add entry to compendium" k-po-save-entry nil]
      ;; ["Select from compendium, save" k-po-select-and-save-entry nil]
      "---"
-     ;; "Auxiliary files"
-     ["Cycle through auxilicary file" k-po-cycle-auxiliary t]
-     ["Select auxilicary file" k-po-select-auxiliary t]
-     ["Consider as auxilicary file" k-po-consider-as-auxiliary t]
-     ["Ignore as auxilicary file" k-po-ignore-as-auxiliary t]
      ;; "---"
      ;; ;; "Lexicography"
      ;; ["Lookup translation" k-po-lookup-lexicons nil]
@@ -230,7 +225,6 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
   `("PO-Edit"
     ["Ediff and merge translation variants" k-po-subedit-ediff
      :help "Call `ediff' for merging variants"]
-    ["Cycle through auxiliary files" k-po-subedit-cycle-auxiliary t]
     "---"
     ["Abort edit" k-po-subedit-abort
      :help "Don't change the translation"]
@@ -271,7 +265,6 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
     (define-key k-po-mode-map (kbd "C-c <")     #'k-po-first-entry)
     (define-key k-po-mode-map (kbd "C-c =")     #'k-po-statistics)
     (define-key k-po-mode-map (kbd "C-c >")     #'k-po-last-entry)
-    (define-key k-po-mode-map (kbd "C-c a")     #'k-po-cycle-auxiliary)
     ;; (define-key k-po-mode-map (kbd "C-c c")  #'k-po-save-entry)
     (define-key k-po-mode-map (kbd "C-c f")     #'k-po-next-fuzzy-entry)
     (define-key k-po-mode-map (kbd "C-c k")     #'k-po-kill-msgstr)
@@ -288,7 +281,6 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
     (define-key k-po-mode-map (kbd "C-c w")     #'k-po-kill-ring-save-msgstr)
     (define-key k-po-mode-map (kbd "C-c x")     #'k-po-exchange-location)
     (define-key k-po-mode-map (kbd "C-c y")     #'k-po-yank-msgstr)
-    (define-key k-po-mode-map (kbd "C-c A")     #'k-po-consider-as-auxiliary)
     (define-key k-po-mode-map (kbd "C-c E")     #'k-po-edit-out-full)
     (define-key k-po-mode-map (kbd "C-c F")     #'k-po-previous-fuzzy-entry)
     (define-key k-po-mode-map (kbd "C-c K")     #'k-po-kill-comment)
@@ -304,7 +296,6 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
     (define-key k-po-mode-map (kbd "C-c Y")     #'k-po-yank-comment)
     (define-key k-po-mode-map (kbd "C-c 0")     #'k-po-other-window)
     (define-key k-po-mode-map (kbd "C-c DEL")   #'k-po-fade-out-entry)
-    (define-key k-po-mode-map (kbd "C-c C-a")   #'k-po-select-auxiliary)
     (define-key k-po-mode-map (kbd "C-c C-e")   #'k-po-edit-msgstr-and-ediff)
     (define-key k-po-mode-map (kbd "C-c C-#")   #'k-po-edit-comment-and-ediff)
     (define-key k-po-mode-map (kbd "C-c C-C")   #'k-po-edit-comment-and-ediff)
@@ -313,7 +304,6 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
     ;; (define-key k-po-mode-map (kbd "M-c")    #'k-po-select-and-save-entry)
     ;; (define-key k-po-mode-map (kbd "M-l")    #'k-po-edit-lexicon-entry)
     (define-key k-po-mode-map (kbd "M-s")       #'k-po-select-source-reference)
-    (define-key k-po-mode-map (kbd "M-A")       #'k-po-ignore-as-auxiliary)
     ;; (define-key k-po-mode-map (kbd "M-L")    #'k-po-ignore-lexicon-file)
     (define-key k-po-mode-map (kbd "M-S")       #'k-po-ignore-source-path)
     k-po-mode-map)
@@ -360,7 +350,6 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
 
 (defvar k-po-subedit-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c C-a") #'k-po-subedit-cycle-auxiliary)
     (define-key map (kbd "C-c C-c") #'k-po-subedit-exit)
     (define-key map (kbd "C-c C-'") #'k-po-subedit-exit)
     (define-key map (kbd "C-c C-e") #'k-po-subedit-ediff)
@@ -1521,135 +1510,6 @@ To minibuffer messages sent while normalizing, add the EXPLAIN string."
   ;; A bizarre format might have fooled the counters, so recompute
   ;; them to make sure their value is dependable.
   (k-po-compute-counters nil))
-
-;;; Multiple PO files.
-;; TODO: replace with translation memory and alternative translations
-;; TODO: search `msgid' in translation memory
-
-(defun k-po-show-auxiliary-list ()
-  "Echo the current auxiliary list in the message area."
-  (if k-po-auxiliary-list
-      (let ((cursor k-po-auxiliary-cursor)
-            string)
-        (while cursor
-          (setq string (concat string (if string " ") (car (car cursor)))
-                cursor (cdr cursor)))
-        (setq cursor k-po-auxiliary-list)
-        (while (not (eq cursor k-po-auxiliary-cursor))
-          (setq string (concat string (if string " ") (car (car cursor)))
-                cursor (cdr cursor)))
-        (message string))
-    (message "No auxiliary files.")))
-
-(defun k-po-consider-as-auxiliary ()
-  "Add the current PO file to the list of auxiliary files."
-  (interactive)
-  (if (member (list buffer-file-name) k-po-auxiliary-list)
-      nil
-    (setq k-po-auxiliary-list
-          (nconc k-po-auxiliary-list (list (list buffer-file-name))))
-    (or k-po-auxiliary-cursor
-        (setq k-po-auxiliary-cursor k-po-auxiliary-list)))
-  (k-po-show-auxiliary-list))
-
-(defun k-po-ignore-as-auxiliary ()
-  "Delete the current PO file from the list of auxiliary files."
-  (interactive)
-  (setq k-po-auxiliary-list (delete (list buffer-file-name) k-po-auxiliary-list)
-        k-po-auxiliary-cursor k-po-auxiliary-list)
-  (k-po-show-auxiliary-list))
-
-(defun k-po-seek-equivalent-translation (name string)
-  "Search a PO file NAME for a `msgid' STRING having a non-empty `msgstr'.
-STRING is the full quoted msgid field, including the `msgid' keyword.  When
-found, display the file over the current window, with the `msgstr' field
-possibly highlighted, the cursor at start of msgid, then return t.
-Otherwise, move nothing, and just return nil."
-  (let ((current (current-buffer))
-        (buffer (find-file-noselect name)))
-    (set-buffer buffer)
-    (let ((start (point))
-          found)
-      (goto-char (point-min))
-      (while (and (not found) (search-forward string nil t))
-        ;; Screen out longer `msgid's.
-        (when (looking-at "^msgstr ")
-          (let ((entry (k-po-current-entry)))
-            ;; Ignore an untranslated entry.
-            (or (string-equal
-                 (buffer-substring (k-po-entry-msgstr-block-start entry)
-                                   (k-po-entry-end entry))
-                 "msgstr \"\"\n")
-                (setq found t)))))
-      (if found
-          (progn
-            (switch-to-buffer buffer)
-            (k-po-find-span-of-entry)
-            (goto-char k-po-start-of-entry)
-            (re-search-forward k-po-any-msgstr-block-regexp nil t)
-            (let ((end (1- (match-end 0))))
-              (goto-char (match-beginning 0))
-              (re-search-forward "msgstr +" nil t)
-              ;; Just "borrow" the marking overlay.
-              (k-po-highlight k-po-marking-overlay (point) end))
-            (goto-char k-po-start-of-msgid))
-        (goto-char start)
-        (k-po-find-span-of-entry)
-        (set-buffer current))
-      found)))
-
-(defun k-po-cycle-auxiliary ()
-  "Select the next auxiliary file having an entry with same `msgid'."
-  (interactive)
-  (k-po-find-span-of-entry)
-  (if k-po-auxiliary-list
-      (let ((string (buffer-substring k-po-start-of-msgid
-                                      k-po-start-of-msgstr-block))
-            (cursor k-po-auxiliary-cursor)
-            found name)
-        (while (and (not found) cursor)
-          (setq name (car (car cursor)))
-          (if (and (not (string-equal buffer-file-name name))
-                   (k-po-seek-equivalent-translation name string))
-              (setq found t
-                    k-po-auxiliary-cursor cursor))
-          (setq cursor (cdr cursor)))
-        (setq cursor k-po-auxiliary-list)
-        (while (and (not found) cursor)
-          (setq name (car (car cursor)))
-          (if (and (not (string-equal buffer-file-name name))
-                   (k-po-seek-equivalent-translation name string))
-              (setq found t
-                    k-po-auxiliary-cursor cursor))
-          (setq cursor (cdr cursor)))
-        (or found (message "No other translation found"))
-        found)))
-
-(defun k-po-subedit-cycle-auxiliary ()
-  "Cycle auxiliary file, but from the translation edit buffer."
-  (interactive)
-  (let* ((entry-marker (nth 0 k-po-subedit-back-pointer))
-         (k-po-subedit--entry-buffer (marker-buffer entry-marker))
-         (buffer (current-buffer)))
-    (pop-to-buffer k-po-subedit--entry-buffer)
-    (k-po-cycle-auxiliary)
-    (pop-to-buffer buffer)))
-
-(defun k-po-select-auxiliary ()
-  "Select one of the available auxiliary files and locate an equivalent entry.
-If an entry having the same `msgid' cannot be found, merely select the file
-without moving its cursor."
-  (interactive)
-  (k-po-find-span-of-entry)
-  (if k-po-auxiliary-list
-      (let ((string
-             (buffer-substring k-po-start-of-msgid k-po-start-of-msgstr-block))
-            (name (car (assoc (completing-read "Which auxiliary file? "
-                                               k-po-auxiliary-list nil t)
-                              k-po-auxiliary-list))))
-        (k-po-consider-as-auxiliary)
-        (or (k-po-seek-equivalent-translation name string)
-            (find-file name)))))
 
 ;;; Original program sources as context.
 

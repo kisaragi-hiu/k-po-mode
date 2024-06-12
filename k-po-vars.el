@@ -397,12 +397,6 @@ or remove the -m if you are not using the GNU version of `uuencode'."
 
 ;;;; Various internal variables and constants
 
-(defvar k-po-auxiliary-list nil
-  "List of auxiliary PO files, in completing read format.")
-
-(defvar k-po-auxiliary-cursor nil
-  "Cursor into the `k-po-auxiliary-list'.")
-
 (defvar k-po-compose-mail-function
   (let ((functions '(compose-mail-other-window
                      message-mail-other-window
