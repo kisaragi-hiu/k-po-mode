@@ -552,6 +552,12 @@ Can be customized with the `k-po-auto-update-file-header' variable."
 
 (defun k-po--language->code (language)
   "Return the language code for LANGUAGE."
+  ;; This is not technically pure, since it reads from `k-po-team-name-to-code'.
+  ;; But that variable is meant to be a constant, and can be seen as just a
+  ;; (leaky) implementation detail, so I'm still going to mark this as pure to
+  ;; stand out from a sea of ancient functions that are swimming in global
+  ;; variables.
+  (declare (pure t) (side-effect-free t))
   (let ((pair (or (assoc language k-po-team-name-to-code)
                   ;; For if the value is the code itself
                   (rassoc language k-po-team-name-to-code))))
@@ -559,6 +565,12 @@ Can be customized with the `k-po-auto-update-file-header' variable."
 
 (defun k-po--language<-code (code)
   "Return the name for the language identified by CODE."
+  ;; This is not technically pure, since it reads from `k-po-team-name-to-code'.
+  ;; But that variable is meant to be a constant, and can be seen as just a
+  ;; (leaky) implementation detail, so I'm still going to mark this as pure to
+  ;; stand out from a sea of ancient functions that are swimming in global
+  ;; variables.
+  (declare (pure t) (side-effect-free t))
   (let ((pair (or (assoc code k-po-team-name-to-code)
                   ;; For if the value is the code itself
                   (rassoc code k-po-team-name-to-code))))
@@ -567,24 +579,29 @@ Can be customized with the `k-po-auto-update-file-header' variable."
 (defun k-po-current-source-language ()
   "Return the source language code of the current file.
 This currently always returns English (\"en\")."
+  (declare (side-effect-free t))
   "en")
 
 (defun k-po-current-target-language ()
   "Return the target language code of the current file."
-  (save-excursion
-    (let ((header (k-po-goto-header)))
-      ;; If we don't find a header, blow up
-      (unless header
-        (error "No header found in current file!"))
-      ;; We *should* find a language field. Let re-search-forward error.
-      (re-search-forward (rx bol "\""
-                             (opt (group "X-")) ; some files have "X-Language"
-                             "Language:" (one-or-more " ")
-                             (group (zero-or-more nonl))
-                             ;; A backslash and an in the po file
-                             "\\n\"" eol)
-                         (cdr header))
-      (k-po--language->code (match-string 2)))))
+  ;; I'm going to mark this as without side effects since that's how this is
+  ;; intended to be used.
+  (declare (side-effect-free t))
+  (save-match-data
+    (save-excursion
+      (let ((header (k-po-goto-header)))
+        ;; If we don't find a header, blow up
+        (unless header
+          (error "No header found in current file!"))
+        ;; We *should* find a language field. Let re-search-forward error.
+        (re-search-forward (rx bol "\""
+                               (opt (group "X-")) ; some files have "X-Language"
+                               "Language:" (one-or-more " ")
+                               (group (zero-or-more nonl))
+                               ;; A backslash and an in the po file
+                               "\\n\"" eol)
+                           (cdr header))
+        (k-po--language->code (match-string 2))))))
 
 
 ;;; Handling span of entry, entry type and entry attributes.
