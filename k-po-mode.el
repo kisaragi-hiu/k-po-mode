@@ -713,7 +713,8 @@ fuzzy, untranslated, or translated."
           (narrow-to-region (match-beginning 0) (match-end 0))
           (goto-char (point-min))
           (if (re-search-forward
-               (concat "\\(\n#, " name "$\\|, " name "$\\| " name ",\\)")
+               (format "\\(\n#, %s$\\|, %s$\\| %s,\\)"
+                       name name name)
                nil t)
               (replace-match "" t t))))))
 
@@ -917,6 +918,25 @@ If WRAP is not nil, the search may wrap around the buffer."
     (if (k-po-entry-type? entry 'fuzzy)
         (k-po-delete-attribute "fuzzy")
       (k-po-add-attribute "fuzzy"))))
+
+(defun k-po--unfuzzy (entry)
+  "Unfuzzy ENTRY then update other state."
+  (when (k-po-entry-type? entry 'fuzzy)
+    (k-po-decrease-type-counter)
+    (k-po-delete-attribute "fuzzy")
+    (k-po-increase-type-counter)))
+
+(defun k-po-unfuzzy-all ()
+  "Unfuzzy all entries in the current file."
+  (interactive)
+  (goto-char (point-min))
+  (k-po-map-entries
+   (lambda (entry)
+     (catch 'continue
+       (unless (k-po-entry-type? entry 'fuzzy)
+         (throw 'continue t))
+       (k-po--unfuzzy entry)))
+   (make-progress-reporter "Unfuzzying entries..." 1 (point-max))))
 
 (defun k-po-unfuzzy ()
   "Remove the fuzzy attribute for the current entry."
@@ -2643,7 +2663,8 @@ The expectation is that a review of the file will be done later."
              (throw 'continue t))
            (message "Setting entry at %s to %s" (point) (elt (car tm) 1))
            (k-po-set-msgstr-form (elt (car tm) 1) ; target text
-                                 entry)))))))
+                                 entry)
+           (k-po--unfuzzy entry)))))))
 
 ;; We can apply `k-po-bulk-fill-msgstr' to a whole directory like this:
 ;; (let* ((files (directory-files "." nil "\\.po$"))
