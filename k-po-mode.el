@@ -36,6 +36,7 @@
 ;;; Code:
 
 (require 'f)
+(require 'eieio)
 
 (require 'k-po-vars)
 
@@ -587,13 +588,11 @@ This currently always returns English (\"en\")."
 
 ;;; Handling span of entry, entry type and entry attributes.
 
-;; TODO: Return an entry object, not this.
-
-(defun k-po-add-attribute (name)
-  "Add attribute NAME to the current entry, unless it is already there."
+(defun k-po-mode-add-attribute (entry name)
+  "Add attribute NAME to ENTRY, unless it is already there."
   (save-excursion
-    (goto-char k-po-start-of-entry)
-    (if (re-search-forward "\n#, .*" k-po-start-of-msgctxt t)
+    (goto-char (oref entry start))
+    (if (re-search-forward "\n#, .*" (oref entry msgctxt-start) t)
         (save-restriction
           (narrow-to-region (match-beginning 0) (match-end 0))
           (goto-char (point-min))
@@ -606,19 +605,19 @@ This currently always returns English (\"en\")."
         (forward-line 1))
       (insert "#, " name "\n"))))
 
-(defun k-po-delete-attribute (name)
-  "Delete attribute NAME from the current entry, if any."
+(defun k-po-mode-delete-attribute (entry name)
+  "Delete attribute NAME from ENTRY, if any."
   (save-excursion
-    (goto-char k-po-start-of-entry)
-    (if (re-search-forward "\n#, .*" k-po-start-of-msgctxt t)
-        (save-restriction
-          (narrow-to-region (match-beginning 0) (match-end 0))
-          (goto-char (point-min))
-          (if (re-search-forward
-               (format "\\(\n#, %s$\\|, %s$\\| %s,\\)"
-                       name name name)
-               nil t)
-              (replace-match "" t t))))))
+    (goto-char (oref entry start))
+    (when (re-search-forward "\n#, .*" (oref entry msgctxt-start) t)
+      (save-restriction
+        (narrow-to-region (match-beginning 0) (match-end 0))
+        (goto-char (point-min))
+        (if (re-search-forward
+             (format "\\(\n#, %s$\\|, %s$\\| %s,\\)"
+                     name name name)
+             nil t)
+            (replace-match "" t t))))))
 
 ;;; Entry positionning.
 
@@ -841,14 +840,14 @@ old-style header), and END is the end position of the header."
   (interactive)
   (let ((entry (k-po-current-entry)))
     (if (k-po-entry-type? entry 'fuzzy)
-        (k-po-delete-attribute "fuzzy")
-      (k-po-add-attribute "fuzzy"))))
+        (k-po-mode-delete-attribute entry "fuzzy")
+      (k-po-mode-add-attribute entry "fuzzy"))))
 
 (defun k-po--unfuzzy (entry)
   "Unfuzzy ENTRY then update other state."
   (when (k-po-entry-type? entry 'fuzzy)
     (k-po-decrease-type-counter)
-    (k-po-delete-attribute "fuzzy")
+    (k-po-mode-delete-attribute entry "fuzzy")
     (k-po-increase-type-counter)))
 
 (defun k-po-unfuzzy-all ()
@@ -869,7 +868,7 @@ old-style header), and END is the end position of the header."
   (let ((entry (k-po-current-entry)))
     (when (k-po-entry-type? entry 'fuzzy)
       (k-po-decrease-type-counter)
-      (k-po-delete-attribute "fuzzy")
+      (k-po-mode-delete-attribute entry "fuzzy")
       (k-po-maybe-delete-previous-untranslated)
       (k-po-display-current-entry)
       (k-po-increase-type-counter))
@@ -1041,7 +1040,7 @@ or completely delete an obsolete entry, saving its msgstr on the kill ring."
   (let ((entry (k-po-current-entry)))
     (cond ((k-po-entry-type? entry 'translated)
            (k-po-decrease-type-counter)
-           (k-po-add-attribute "fuzzy")
+           (k-po-mode-add-attribute entry "fuzzy")
            (k-po-display-current-entry)
            (k-po-increase-type-counter))
 
@@ -1368,7 +1367,7 @@ the ediff control panel."
                (when (and k-po-auto-fuzzy-on-edit
                           (k-po-entry-type? entry 'translated))
                  (k-po-decrease-type-counter)
-                 (k-po-add-attribute "fuzzy")
+                 (k-po-mode-add-attribute entry "fuzzy")
                  (k-po-display-current-entry)
                  (k-po-increase-type-counter))))
             (t (debug))))))
