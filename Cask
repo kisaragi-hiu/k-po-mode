@@ -4,4 +4,5 @@
 (package-file "k-po-mode.el")
 
 (development
- (depends-on "buttercup"))
+ (depends-on "buttercup")
+ (depends-on "undercover"))

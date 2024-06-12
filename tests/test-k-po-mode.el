@@ -1,5 +1,10 @@
 ;; -*- mode: lisp-interaction; lexical-binding: t; -*-
 
+(when (require 'undercover nil t)
+  (undercover "k-po*.el"
+              (:report-format 'lcov)
+              (:send-report nil)))
+
 (require 'k-po-mode)
 (require 'buttercup)
 
