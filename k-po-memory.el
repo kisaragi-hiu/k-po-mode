@@ -108,7 +108,7 @@ for each column."
     (setq db k-po-memory--connection)
     (when should-init
       (sqlite-pragma db "foreign_keys = 1")
-      (sqlite-pragma db (format "user-version = %s" k-po-memory--version))
+      (sqlite-pragma db (format "user_version = %s" k-po-memory--version))
       (with-sqlite-transaction db
         (pcase-dolist (`(,tbl . ,schemata) k-po-memory--schemata)
           (sqlite-execute
