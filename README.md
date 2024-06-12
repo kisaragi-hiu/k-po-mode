@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/kisaragi-hiu/k-po-mode/badge.svg?branch=main)](https://coveralls.io/github/kisaragi-hiu/k-po-mode?branch=main)
+
 # k-po-mode
 
 A po-mode fork.
