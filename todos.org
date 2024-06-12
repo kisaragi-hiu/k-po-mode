@@ -1,3 +1,34 @@
+* Glossary
+
+From the comments we can tell that po-mode had plans to create a “lexicon” feature:
+
+- po-lookup-lexicons
+- po-edit-lexicon-entry
+- po-consider-lexicon-file
+- po-ignore-lexicon-file
+
+This does not seem to have actually been implemented, however.
+
+We can implement our own system. But first, I should clear up the vocabulary:
+
+- A “lexicon” is a set of lexicon entries, represented by a file
+- A “lexicon entry” maps some word or phrase to a preferred translation
+- “lexicon” and “glossary” are basically synonyms
+
+With that out of the way:
+
+- There should be a way to have directory-wide glossaries. I want to be able to create a glossary that's specific to, say, Kdenlive.
+- The file format can either be the same as Lokalize, or our own simple format.
+
+Possible interactions:
+
+- Within sidebar, as an equivalent view to “other languages”, there should be a “glossary” view
+  - Glossary entries that are mentioned in the current source text should show up there
+  - This replaces an explicit lookup command
+- There should be a way to edit a glossary file
+  - We're in /Emacs/, we don't have to build a full-on GUI. Just use a text format.
+  - Import from / export to TBX
+
 * Views
 - [ ] List of files in a project
 - [ ] List of entries in a file
