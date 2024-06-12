@@ -7,18 +7,14 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
-      matrix:
-        emacs_version:
-          - 29.3
     steps:
       - uses: actions/checkout@v4
       - name: Set up Emacs
-        uses: purcell/setup-emacs@master
-        with:
-          version: ${{ matrix.emacs_version }}
+        run: |
+          sudo apt-get install emacs-nox
       - name: Set up Cask
         uses: conao3/setup-cask@master
       - name: Test
