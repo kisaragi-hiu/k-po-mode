@@ -39,7 +39,6 @@
 
 (require 'k-po-vars)
 
-(require 'k-po-extract)
 (require 'k-po-entry)
 (require 'k-po-sidebar)
 (require 'k-po-memory)
@@ -594,98 +593,6 @@ This currently always returns English (\"en\")."
 ;;; Handling span of entry, entry type and entry attributes.
 
 ;; TODO: Return an entry object, not this.
-(defun k-po-find-span-of-entry ()
-  "Find the extent of the PO file entry where the cursor is.
-Set variables k-po-start-of-entry, k-po-start-of-msgctxt, k-po-start-of-msgid,
-k-po-start-of-msgid_plural, k-po-start-of-msgstr-block, k-po-end-of-entry, and
-k-po-entry-type to meaningful values. k-po-entry-type may be set to: obsolete,
-fuzzy, untranslated, or translated."
-  (let ((here (point)))
-    (if (re-search-backward k-po-any-msgstr-block-regexp nil t)
-        (progn
-          ;; After a backward match, (match-end 0) will not extend
-          ;; beyond point, in case point was *inside* the regexp.  We
-          ;; need a dependable (match-end 0), so we redo the match in
-          ;; the forward direction.
-          (re-search-forward k-po-any-msgstr-block-regexp)
-          (if (<= (match-end 0) here)
-              (progn
-                ;; We most probably found the msgstr of the previous
-                ;; entry.  The current entry then starts just after
-                ;; its end, save this information just in case.
-                (setq k-po-start-of-entry (match-end 0))
-                ;; However, it is also possible that we are located in
-                ;; the crumb after the last entry in the file.  If
-                ;; yes, we know the middle and end of last PO entry.
-                (setq k-po-start-of-msgstr-block (match-beginning 0)
-                      k-po-end-of-entry (match-end 0))
-                (if (re-search-forward k-po-any-msgstr-block-regexp nil t)
-                    (progn
-                      ;; We definitely were not in the crumb.
-                      (setq k-po-start-of-msgstr-block (match-beginning 0)
-                            k-po-end-of-entry (match-end 0)))
-                  ;; We were in the crumb.  The start of the last PO
-                  ;; file entry is the end of the previous msgstr if
-                  ;; any, or else, the beginning of the file.
-                  (goto-char k-po-start-of-msgstr-block)
-                  (setq k-po-start-of-entry
-                        (if (re-search-backward k-po-any-msgstr-block-regexp nil t)
-                            (match-end 0)
-                          (point-min)))))
-            ;; The cursor was inside msgstr of the current entry.
-            (setq k-po-start-of-msgstr-block (match-beginning 0)
-                  k-po-end-of-entry (match-end 0))
-            ;; The start of this entry is the end of the previous
-            ;; msgstr if any, or else, the beginning of the file.
-            (goto-char k-po-start-of-msgstr-block)
-            (setq k-po-start-of-entry
-                  (if (re-search-backward k-po-any-msgstr-block-regexp nil t)
-                      (match-end 0)
-                    (point-min)))))
-      ;; The cursor was before msgstr in the first entry in the file.
-      (setq k-po-start-of-entry (point-min))
-      (goto-char k-po-start-of-entry)
-      ;; There is at least the PO file header, so this should match.
-      (re-search-forward k-po-any-msgstr-block-regexp)
-      (setq k-po-start-of-msgstr-block (match-beginning 0)
-            k-po-end-of-entry (match-end 0)))
-    ;; Find start of msgid.
-    (goto-char k-po-start-of-entry)
-    (re-search-forward k-po-any-msgctxt-msgid-regexp)
-    (setq k-po-start-of-msgctxt (match-beginning 0))
-    (goto-char k-po-start-of-entry)
-    (re-search-forward k-po-any-msgid-regexp)
-    (setq k-po-start-of-msgid (match-beginning 0))
-    (save-excursion
-      (goto-char k-po-start-of-msgid)
-      (setq k-po-start-of-msgid_plural
-            (if (re-search-forward k-po-any-msgid_plural-regexp
-                                   k-po-start-of-msgstr-block t)
-                (match-beginning 0)
-              nil)))
-    (save-excursion
-      (when (>= here k-po-start-of-msgstr-block)
-        ;; point was somewhere inside of msgstr*
-        (goto-char here)
-        (end-of-line)
-        (re-search-backward "^\\(#~[ \t]*\\)?msgstr"))
-      ;; Detect the boundaries of the msgstr we are interested in.
-      (re-search-forward k-po-any-msgstr-form-regexp)
-      (setq k-po-start-of-msgstr-form (match-beginning 0)
-            k-po-end-of-msgstr-form (match-end 0)))
-    ;; Classify the entry.
-    (setq k-po-entry-type
-          (if (eq (following-char) ?#)
-              'obsolete
-            (goto-char k-po-start-of-entry)
-            (if (re-search-forward k-po-fuzzy-regexp k-po-start-of-msgctxt t)
-                'fuzzy
-              (goto-char k-po-start-of-msgstr-block)
-              (if (looking-at k-po-untranslated-regexp)
-                  'untranslated
-                'translated))))
-    ;; Put the cursor back where it was.
-    (goto-char here)))
 
 (defun k-po-add-attribute (name)
   "Add attribute NAME to the current entry, unless it is already there."
@@ -826,6 +733,29 @@ If WRAP is not nil, the search may wrap around the buffer."
         (error "There is no such entry")))))
 
 ;; Any entries.
+
+(defun k-po-goto-header ()
+  "Jump to the start of the header, if any.
+If a header does not exist, return nil. Otherwise, return
+\(TYPE . END), where TYPE is either t or `legacy' (for an
+old-style header), and END is the end position of the header."
+  (interactive)
+  (goto-char (point-min))
+  (let (end-of-header start-of-header ret)
+    (when (re-search-forward k-po-any-msgstr-block-regexp nil t)
+      ;; There is at least one entry.
+      (goto-char (match-beginning 0))
+      (forward-line -1)
+      (setq start-of-header (point))
+      (setq end-of-header (match-end 0))
+      (when (looking-at "msgid \"\"\n")
+        ;; There is indeed a PO file header.
+        (if (re-search-forward "\n\"PO-Revision-Date: "
+                               end-of-header t)
+            (setq ret (cons t end-of-header))
+          (setq ret (cons 'legacy end-of-header)))
+        (goto-char start-of-header)
+        ret))))
 
 (defun k-po-jump-to-entry (source target)
   "Jump to the entry whose msgid is SOURCE and msgstr is TARGET."
