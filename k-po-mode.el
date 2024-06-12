@@ -354,6 +354,7 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
   (setq-local k-po-string-end nil)
   (setq-local k-po-marking-overlay (k-po-create-overlay))
 
+  (add-hook 'before-save-hook #'k-po-memory-insert-current-file nil t)
   (add-hook 'post-command-hook #'k-po-sidebar--post-command-h nil t)
   (add-hook 'write-contents-functions #'k-po-replace-revision-date))
 
