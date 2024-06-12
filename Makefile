@@ -8,7 +8,7 @@ $(ELC): .cask $(wildcard *.el)
 
 compile: $(ELC)
 
-test:
+test: .cask
 	cask exec buttercup tests/
 
 .PHONY: test compile
