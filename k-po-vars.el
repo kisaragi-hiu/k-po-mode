@@ -101,7 +101,7 @@ slightly different."
   :type 'face
   :group 'k-po)
 
-(defcustom k-po-team-name-to-code
+(defconst k-po-team-name-to-code
   ;; All possible languages, a complete ISO 639 list, the inverse of
   ;; gettext-tools/src/lang-table.c, and a little more.
   '(("LANGUAGE" . "LL")
@@ -382,10 +382,12 @@ slightly different."
     ("Zapotec" . "zap")
     ("Zhuang" . "za")
     ("Zulu" . "zu"))
-  "*Association list giving team codes from team names.
-This is used for generating a submission file name for the 'M' command.
-If a string instead of an alist, it is a team code to use unconditionnally."
-  :type 'sexp
+  "Association list giving team codes from team names.")
+
+(defcustom k-po-force-team-code nil
+  "If non-nil, a team code to use unconditionally.
+This is used for generating a submission file name for the 'M' command."
+  :type '(choice string nil)
   :group 'k-po)
 
 (defcustom k-po-gzip-uuencode-command "gzip -9 | uuencode -m"

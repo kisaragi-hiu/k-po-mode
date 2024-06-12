@@ -2286,8 +2286,8 @@ Version mismatch: file name: %s; header: %s.\n\
 Adjust Project-Id-Version field to match file name and try again"
                         (match-string-no-properties 1 filename) version))))
       ;; Get the team.
-      (if (stringp k-po-team-name-to-code)
-          (setq team k-po-team-name-to-code)
+      (if (stringp k-po-force-team-code)
+          (setq team k-po-force-team-code)
         (goto-char start-of-header)
         (if (re-search-forward "\n\
 \"Language-Team: \\([^ ].*[^ ]\\) <.+@.+>\\\\n\"$"
