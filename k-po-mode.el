@@ -1394,6 +1394,7 @@ the ediff control panel."
                  (k-po-increase-type-counter))))
             (t (debug))))))
 
+;; TODO: tear down po-mode's own subedit code and use edit-indirect instead
 (defun k-po-edit-string (string type expand-tabs)
   "Prepare a pop up buffer for editing STRING, which is of a given TYPE.
 TYPE may be `comment' or `msgstr'.  If EXPAND-TABS, expand tabs to spaces.
@@ -1408,6 +1409,7 @@ Run functions on k-po-subedit-mode-hook."
               (buffer (current-buffer))
               (window-count-before-switch (count-windows))
               overlay slot)
+          ;; When editing the msgstr, highlight it in the source buffer
           (if (and (eq type 'msgstr))
               ;; ;; Try showing all of msgid in the upper window while editing.
               ;; (goto-char (1- k-po-start-of-msgstr-block))
@@ -1436,9 +1438,12 @@ Run functions on k-po-subedit-mode-hook."
           (goto-char (point-min))
           (and expand-tabs (setq indent-tabs-mode nil))
           (use-local-map k-po-subedit-mode-map)
-          (if (fboundp 'easy-menu-define)
-              (easy-menu-define k-po-subedit-mode-menu k-po-subedit-mode-map ""
-                k-po-subedit-mode-menu-layout))
+          (when (fboundp 'easy-menu-define)
+            (easy-menu-define k-po-subedit-mode-menu k-po-subedit-mode-map ""
+              k-po-subedit-mode-menu-layout))
+          ;; HACK: this shouldn't be necessary if we're using edit-indirect
+          (when (fboundp 'evil-insert-state)
+            (evil-insert-state))
           (set-syntax-table k-po-subedit-mode-syntax-table)
           (run-hooks 'k-po-subedit-mode-hook)
           (message "%s" (substitute-command-keys k-po-subedit-message))))))
