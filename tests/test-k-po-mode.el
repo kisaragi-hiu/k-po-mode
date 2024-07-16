@@ -52,12 +52,12 @@
   (it "inserts an entry"
     (expect (k-po-memory-insert-entry
              (k-po-entry
-              :-msgid "Hello"
-              :-msgstr "哈囉")
+              :-msgid "Extra"
+              :-msgstr "額外")
              "test.po"
              "en"
              "zh_TW")
             :to-equal 1)
-    (expect (k-po-memory-get "Hello" "zh_TW")
+    (expect (k-po-memory-get "Extra" "zh_TW")
             :to-equal
-            '(#s(k-po-memory-entry "Hello" "哈囉" 1)))))
+            '(#s(k-po-memory-entry "Extra" "額外" 1)))))
