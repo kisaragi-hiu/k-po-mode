@@ -47,3 +47,15 @@
       (expect (k-po-entry-msgstr (k-po-current-entry))
               :to-equal
               "嗨"))))
+
+(describe "memory"
+  (it "inserts an entry"
+    (expect (k-po-memory-insert-entry
+             (k-po-entry :msgid "Hello" :msgstr "哈囉")
+             "test.po"
+             "en"
+             "zh_TW")
+            :to-equal 1)
+    (expect (k-po-memory-get "Hello" "zh_TW")
+            :to-equal
+            '(#s(k-po-memory-entry "Hello" "哈囉" 1)))))
