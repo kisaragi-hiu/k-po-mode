@@ -114,6 +114,7 @@ then this string inserted."
 (cl-defstruct (k-po-entry (:copier nil)
                           (:constructor k-po-entry))
   "An object representing an entry in a PO file."
+  -msgid -msgstr ; for storing the msgid and msgstr directly, mainly for tests
   start msgctxt-start msgid-start msgid_plural-start msgstr-block-start
   msgstr-form-start msgstr-form-end
   end
@@ -237,10 +238,11 @@ fuzzy, untranslated, or translated."
 
 (defun k-po-entry-msgid (entry)
   "Return the msgid text of ENTRY."
-  (k-po-extract-unquoted (current-buffer)
-                         (k-po-entry-msgid-start entry)
-                         (or (k-po-entry-msgid_plural-start entry)
-                             (k-po-entry-msgstr-block-start entry))))
+  (or (k-po-entry--msgid entry)
+      (k-po-extract-unquoted (current-buffer)
+                             (k-po-entry-msgid-start entry)
+                             (or (k-po-entry-msgid_plural-start entry)
+                                 (k-po-entry-msgstr-block-start entry)))))
 
 (defun k-po-entry-msgid_plural (entry)
   "Return the unquoted msgid_plural string from ENTRY.
@@ -260,9 +262,10 @@ Returns one of \"msgstr\" or \"msgstr[i]\" for some i."
 
 (defun k-po-entry-msgstr (entry)
   "Extract and return the unquoted msgstr string for ENTRY."
-  (k-po-extract-unquoted (current-buffer)
-                         (k-po-entry-msgstr-form-start entry)
-                         (k-po-entry-msgstr-form-end entry)))
+  (or (k-po-entry--msgstr)
+      (k-po-extract-unquoted (current-buffer)
+                             (k-po-entry-msgstr-form-start entry)
+                             (k-po-entry-msgstr-form-end entry))))
 
 (defun k-po-entry-comment (entry)
   "Return the editable comment of ENTRY in the uncommented form."

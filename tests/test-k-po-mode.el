@@ -51,7 +51,9 @@
 (describe "memory"
   (it "inserts an entry"
     (expect (k-po-memory-insert-entry
-             (k-po-entry :msgid "Hello" :msgstr "哈囉")
+             (k-po-entry
+              :-msgid "Hello"
+              :-msgstr "哈囉")
              "test.po"
              "en"
              "zh_TW")
