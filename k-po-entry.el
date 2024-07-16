@@ -262,7 +262,7 @@ Returns one of \"msgstr\" or \"msgstr[i]\" for some i."
 
 (defun k-po-entry-msgstr (entry)
   "Extract and return the unquoted msgstr string for ENTRY."
-  (or (k-po-entry--msgstr)
+  (or (k-po-entry--msgstr entry)
       (k-po-extract-unquoted (current-buffer)
                              (k-po-entry-msgstr-form-start entry)
                              (k-po-entry-msgstr-form-end entry))))
