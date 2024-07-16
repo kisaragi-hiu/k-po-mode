@@ -222,7 +222,8 @@ this is wrapped in a transaction and is interactive."
 ;; advantage of the index. Using the count aggregate function, GROUP BY, and
 ;; HAVING seems to make it necessary for SQLite to scan through every row.
 (defun k-po-memory--rows-count-group (rows)
-  "Group ROWS by count, and sort appropriately."
+  "Add count to each of ROWS, and sort appropriately.
+Return a list of lists, like ((COUNT ROW1) (COUNT ROW2) ...)."
   (let ((table (make-hash-table :test #'equal))
         ret)
     (pcase-dolist (row rows)
@@ -231,45 +232,54 @@ this is wrapped in a transaction and is interactive."
         (puthash row 1 table)))
     (maphash
      (lambda (row count)
-       (push (k-po-memory-entry :source (car row)
-                                :target (cadr row)
-                                :count count)
-             ret))
+       (push (list count row) ret))
      table)
     (sort ret (lambda (a b)
-                (> (oref a count)
-                   (oref b count))))))
+                (> (car a)
+                   (car b))))))
+
+(defun k-po-memory--counted-rows-to-tm-entries (rows)
+  "Turn ROWS of ((COUNT (SOURCE TARGET))...) into `k-po-memory-entry' objects."
+  (mapcar
+   (lambda (row)
+     (k-po-memory-entry :count (car row)
+                        :source (car (cadr row))
+                        :target (cadr (cadr row))))
+   rows))
 
 (defun k-po-memory-get (msgid target-lang)
   "Return the target texts for MSGID.
-The value is a list of rows, where each row is (SOURCE TARGET COUNT)."
-  (k-po-memory--rows-count-group
-   (k-po-memory--select
-    "SELECT source, target
+The value is a list of `k-po-memory-entry' objects."
+  (k-po-memory--counted-rows-to-tm-entries
+   (k-po-memory--rows-count-group
+    (k-po-memory--select
+     "SELECT source, target
 FROM mapping
 WHERE source = ? AND target_lang = ?"
-    msgid target-lang)))
+     msgid target-lang))))
 
 (defun k-po-memory-get-prefix (prefix)
   "Return the target texts whose source text starts with PREFIX.
-The value is a list of rows, where each row is (SOURCE TARGET COUNT)."
-  (k-po-memory--rows-count-group
-   (k-po-memory--select
-    "SELECT source, target
+The value is a list of `k-po-memory-entry' objects."
+  (k-po-memory--counted-rows-to-tm-entries
+   (k-po-memory--rows-count-group
+    (k-po-memory--select
+     "SELECT source, target
 FROM mapping
 WHERE instr(source, ?) = 1"
-    prefix)))
+     prefix))))
 
 (defun k-po-memory-get-contains (needle target-lang)
   "Return the target texts in TARGET-LANG whose source text contains NEEDLE.
-The value is a list of rows, where each row is (SOURCE TARGET COUNT)."
-  (k-po-memory--rows-count-group
-   (k-po-memory--select
-    "SELECT source, target
+The value is a list of `k-po-memory-entry' objects."
+  (k-po-memory--counted-rows-to-tm-entries
+   (k-po-memory--rows-count-group
+    (k-po-memory--select
+     "SELECT source, target
 FROM mapping
 WHERE instr(source, ?) AND target_lang = ?"
-    needle
-    target-lang)))
+     needle
+     target-lang))))
 
 (defun k-po-memory--jump-to-file-entry (source target &optional cands)
   "Jump to a location of an entry with SOURCE and TARGET in TM.

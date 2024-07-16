@@ -145,7 +145,7 @@ LIMIT 5"
         (insert (propertize "None" 'face 'italic))
       (insert
        (string-join
-        (mapcar (pcase-lambda (`(,target ,lang))
+        (mapcar (pcase-lambda (`(,_count (,target ,lang)))
                   (faceup-render-string
                    (format "«B:%s» «I:%s»"
                            target
