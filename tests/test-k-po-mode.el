@@ -40,7 +40,7 @@
       (k-po-next-entry)
       (expect (k-po-current-entry)
               :to-equal
-              #s(k-po-entry 524 553 568 nil 582 582 593 593 translated))
+              #s(k-po-entry nil nil 524 553 568 nil 582 582 593 593 translated))
       (expect (k-po-entry-msgid (k-po-current-entry))
               :to-equal
               "Hello")
