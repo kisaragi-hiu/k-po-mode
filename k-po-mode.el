@@ -1909,9 +1909,19 @@ strings remain."
         (erase-buffer)
         (insert (format "%s" output))))))
 
-(defun k-po-bulk-fill-msgstr ()
+(defun k-po-bulk-fill-msgstr (&optional func)
   "For untranslated entries with just one matching TM entry, apply that TM entry.
-The expectation is that a review of the file will be done later."
+
+If there are multiple TM entries, but the top entry has over 100
+occurrences in the translation memory, then that TM entry is also applied.
+
+The expectation is that a review of the file will be done later.
+
+The condition for TM entries described above (only one entry or
+top has > 100 occurrences) can be overriden by passing a function
+in as FUNC. For each PO entry, this function receives one argument,
+its matching TM entries, and should return a string to be used as
+the translation of the PO entry."
   (interactive)
   (goto-char (point-min))
   (let ((target-lang (k-po-current-target-language)))
@@ -1922,19 +1932,27 @@ The expectation is that a review of the file will be done later."
                      '(translated obsolete))
            (throw 'continue t))
          (let* ((msgid (k-po-entry-msgid entry))
-                (tm (k-po-memory-get msgid target-lang)))
+                (tm (k-po-memory-get msgid target-lang))
+                new-target)
            ;; No memory entry
            (unless tm
              (throw 'continue t))
-           ;; More than 1 memory entry, but the first entry doesn't have over
-           ;; 100 uses
-           (when (and (> (length tm) 1)
-                      (not (> (elt (car tm) 2)
-                              100)))
+           (setq new-target
+                 (if func
+                     (funcall func tm)
+                   (and (or
+                         ;; if no more than one entry
+                         ;; -> if just one entry, since the zero entry case
+                         ;; would've already continued
+                         (not (> (length tm) 1))
+                         ;; or if the first entry has over 100 occurrences
+                         (> (elt (car tm) 2)
+                            100))
+                        (elt (car tm) 1))))
+           (unless new-target
              (throw 'continue t))
-           (message "Setting entry at %s to %s" (point) (elt (car tm) 1))
-           (k-po-set-msgstr-form (elt (car tm) 1) ; target text
-                                 entry)
+           (message "Setting entry at %s to %s" (point) new-target)
+           (k-po-set-msgstr-form new-target entry)
            (k-po--unfuzzy entry)))))))
 
 ;; We can apply `k-po-bulk-fill-msgstr' to a whole directory like this:
