@@ -1919,9 +1919,10 @@ The expectation is that a review of the file will be done later.
 
 The condition for TM entries described above (only one entry or
 top has > 100 occurrences) can be overriden by passing a function
-in as FUNC. For each PO entry, this function receives one argument,
-its matching TM entries, and should return a string to be used as
-the translation of the PO entry."
+in as FUNC. For each PO entry, this function receives one
+argument, its matching TM entries (as `k-po-memory-entry'
+objects), and should return a string to be used as the
+translation of the PO entry."
   (interactive)
   (goto-char (point-min))
   (let ((target-lang (k-po-current-target-language)))
@@ -1946,46 +1947,14 @@ the translation of the PO entry."
                          ;; would've already continued
                          (not (> (length tm) 1))
                          ;; or if the first entry has over 100 occurrences
-                         (> (elt (car tm) 2)
+                         (> (k-po-memory-entry-count (car tm))
                             100))
-                        (elt (car tm) 1))))
+                        (k-po-memory-entry-target (car tm)))))
            (unless new-target
              (throw 'continue t))
            (message "Setting entry at %s to %s" (point) new-target)
            (k-po-set-msgstr-form new-target entry)
            (k-po--unfuzzy entry)))))))
-
-;; We can apply `k-po-bulk-fill-msgstr' to a whole directory like this:
-;; (let* ((files (directory-files "." nil "\\.po$"))
-;;        (l (length files))
-;;        (i 0))
-;;   (--each files
-;;     (cl-incf i)
-;;     (message "Filling in msgstr %s/%s (%s)" i l it)
-;;     (let ((inhibit-message t))
-;;       (k/with-file it t
-;;         (k-po-memory-fill-msgstr)))))
-
-;; Also, bulk replace:
-;; (let* ((files (directory-files "." nil "\\.po$"))
-;;        (l (length files))
-;;        (i 0))
-;;   (--each files
-;;     (cl-incf i)
-;;     (message "Replacing msgstr: %s/%s (%s)" i l it)
-;;     (let ((inhibit-message t))
-;;       (k/with-file it t
-;;         (let ((target-lang (k-po-current-target-language)))
-;;           (k-po-map-entries
-;;            (lambda (entry)
-;;              (catch 'continue
-;;                (when (memq (k-po-entry-type entry)
-;;                            '(obsolete fuzzy))
-;;                  (throw 'continue t))
-;;                (let* ((msgid (k-po-entry-msgid entry)))
-;;                  (unless (equal msgid "Switch")
-;;                    (throw 'continue t))
-;;                  (k-po-set-msgstr-form "開關" entry))))))))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.po[tx]?\\'\\|\\.po\\." . k-po-mode))

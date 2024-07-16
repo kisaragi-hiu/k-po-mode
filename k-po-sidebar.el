@@ -160,7 +160,8 @@ MSGID, TARGET-LANG, and SOURCE-BUFFER are passed in from the update function."
   (let ((mapping (k-po-memory-get msgid target-lang)))
     (if (not mapping)
         (insert (propertize "None" 'face 'italic))
-      (pcase-dolist (`(,source ,target ,count) mapping)
+      (pcase-dolist ((cl-struct k-po-memory-entry source target count)
+                     mapping)
         (insert (propertize
                  (format "(%sx) %s\n"
                          count

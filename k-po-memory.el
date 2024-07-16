@@ -8,6 +8,7 @@
 
 (require 'cl-lib)
 (require 'sqlite)
+(require 'eieio)
 
 (require 'k-po-entry)
 
@@ -36,6 +37,10 @@ To read this value, use `k-po-memory--db' instead.")
      "file text"
      "source_lang text"
      "target_lang text")))
+
+(cl-defstruct (k-po-memory-entry (:copier nil)
+                                 (:constructor k-po-memory-entry))
+  source target count)
 
 (defmacro k-po-memory--with-transaction (&rest body)
   "Run BODY in a transaction for the `k-po-memory' database.
@@ -142,6 +147,7 @@ for each column."
 
 (defun k-po-memory-insert-entry (entry file source-lang target-lang)
   "Insert ENTRY from FILE into the translation memory.
+ENTRY is a PO entry, not a translation memory entry.
 SOURCE-LANG and TARGET-LANG are languages of the source text and
 target text, respectively."
   (k-po-memory--execute
@@ -225,11 +231,14 @@ this is wrapped in a transaction and is interactive."
         (puthash row 1 table)))
     (maphash
      (lambda (row count)
-       (push (list (car row) (cadr row) count) ret))
+       (push (k-po-memory-entry :source (car row)
+                                :target (cadr row)
+                                :count count)
+             ret))
      table)
     (sort ret (lambda (a b)
-                (> (elt a 2)
-                   (elt b 2))))))
+                (> (oref a count)
+                   (oref b count))))))
 
 (defun k-po-memory-get (msgid target-lang)
   "Return the target texts for MSGID.
@@ -296,7 +305,8 @@ retrieving from the DB again."
         (insert (format "Search started at %s\n" (current-time-string))
                 (faceup-render-string
                  (format "Searching for «I:%s» in «I:%s»\n\n" needle target-lang)))
-        (pcase-dolist (`(,source ,target ,count) mapping)
+        (pcase-dolist ((cl-struct k-po-memory-entry source target count)
+                       mapping)
           (insert
            (faceup-render-string
             (format "source: «B:%s»\ntarget: «B:%s» («I:%sx»)\n" source target count)))
