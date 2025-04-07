@@ -97,6 +97,7 @@ for each column."
       (setq new (1+ old)))
     (pcase (list old new)
       ('(0 1)
+       (k-po-memory--execute (format "PRAGMA user_version = %s" k-po-memory--version))
        (k-po-memory--execute "ALTER TABLE mapping ADD COLUMN source_lang TEXT;")
        (k-po-memory--execute "ALTER TABLE mapping ADD COLUMN target_lang TEXT;")))
     new))
