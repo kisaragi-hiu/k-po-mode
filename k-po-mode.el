@@ -1909,7 +1909,7 @@ strings remain."
         (erase-buffer)
         (insert (format "%s" output))))))
 
-(defun k-po-bulk-fill-msgstr (&optional func)
+(defun k-po-memory-bulk-fill-msgstr (&optional func)
   "For untranslated entries with just one matching TM entry, apply that TM entry.
 
 If there are multiple TM entries, but the top entry has over 100
