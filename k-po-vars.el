@@ -21,8 +21,9 @@
   :type 'boolean
   :group 'k-po)
 
-(defcustom k-po-auto-fuzzy-on-edit nil
-  "*Automatically mark entries fuzzy when being edited."
+(defcustom k-po-auto-unfuzzy-on-edit t
+  "Automatically mark entries as not fuzzy when finishing edit.
+This is the opposite of `po-mode-fuzzy-on-edit' but matches Lokalize."
   :type 'boolean
   :group 'k-po)
 

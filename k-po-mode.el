@@ -1386,10 +1386,10 @@ the ediff control panel."
             ((= (point) (k-po-entry-msgstr-form-start entry))
              (when (k-po-set-msgstr-form str entry)
                (k-po-maybe-delete-previous-untranslated)
-               (when (and k-po-auto-fuzzy-on-edit
-                          (k-po-entry-type? entry 'translated))
+               (when (and k-po-auto-unfuzzy-on-edit
+                          (k-po-entry-type? entry 'fuzzy))
                  (k-po-decrease-type-counter)
-                 (k-po-mode-add-attribute entry "fuzzy")
+                 (k-po-mode-delete-attribute entry "fuzzy")
                  (k-po-display-current-entry)
                  (k-po-increase-type-counter))))
             (t (debug))))))
