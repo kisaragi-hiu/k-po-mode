@@ -1385,13 +1385,9 @@ the ediff control panel."
              (k-po-redisplay))
             ((= (point) (k-po-entry-msgstr-form-start entry))
              (when (k-po-set-msgstr-form str entry)
-               (k-po-maybe-delete-previous-untranslated)
-               (when (and k-po-auto-unfuzzy-on-edit
-                          (k-po-entry-type? entry 'fuzzy))
-                 (k-po-decrease-type-counter)
-                 (k-po-mode-delete-attribute entry "fuzzy")
-                 (k-po-display-current-entry)
-                 (k-po-increase-type-counter))))
+               (k-po-maybe-delete-previous-untranslated))
+             (when k-po-auto-unfuzzy-on-edit
+               (k-po-unfuzzy)))
             (t (debug))))))
 
 ;; TODO: tear down po-mode's own subedit code and use edit-indirect instead
