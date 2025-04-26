@@ -1141,6 +1141,28 @@ If ENTRY is non-nil, use that instead of the current entry."
    (k-po-entry-comment
     (or entry (k-po-current-entry)))))
 
+(defun k-po-visit-kde-invent ()
+  "Visit source on KDE Invent.
+Assumes this is applicable to the current entry."
+  (interactive)
+  (save-excursion
+    (let ((entry (k-po-current-entry)))
+      (goto-char (k-po-entry-start entry))
+      (when (re-search-forward "\\(^#:\\)? *\\([^: ]*\\):\\([0-9]+\\)"
+                               (k-po-entry-msgid-start entry) t)
+        (let ((project (file-name-base
+                        (directory-file-name
+                         (file-name-directory
+                          (buffer-file-name)))))
+              (name (match-string 2))
+              (line (match-string 3)))
+          (when (y-or-n-p (format "Project: %s, %s:%s. Proceed?"
+                                  project name line))
+            (browse-url (format "https://kde-project.kisaragi-hiu.com/%s/%s#L%s"
+                                project
+                                name
+                                line))))))))
+
 (defun k-po-kill-comment ()
   "Empty the msgstr string from current entry, pushing it on the kill ring."
   (interactive)
