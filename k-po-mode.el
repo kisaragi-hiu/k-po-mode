@@ -1928,6 +1928,19 @@ strings remain."
         (erase-buffer)
         (insert (format "%s" output))))))
 
+(defun k-po-check-dir (dir)
+  "Check all po files within DIR."
+  (interactive "DCheck directory of PO files: ")
+  (with-current-buffer (get-buffer-create "*k/po*")
+    (erase-buffer)
+    (insert (format "Errors in %s:\n" dir))
+    (start-process "k/po - find" (current-buffer)
+                   "find" (expand-file-name dir)
+                   "-path" "*.po"
+                   "-execdir"
+                   "msgfmt" "{}" "-o" "/dev/null" "--check-format" ";")
+    (display-buffer (current-buffer))))
+
 (defun k-po-memory-bulk-fill-msgstr (&optional func)
   "For untranslated entries with just one matching TM entry, apply that TM entry.
 
