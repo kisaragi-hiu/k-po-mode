@@ -406,6 +406,7 @@ Then, update the mode line counters."
 
 (defun k-po-map-entries (func &optional reporter)
   "Call FUNC for each entry in the buffer.
+FUNC is called with the entry as its only argument.
 If REPORTER is non-nil, it is ticked using
 `progress-reporter-update' with the point position after each
 iteration, and finalized using `progress-reporter-done' afterwards."
