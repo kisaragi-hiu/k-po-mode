@@ -1942,6 +1942,24 @@ strings remain."
                    "msgfmt" "{}" "-o" "/dev/null" "--check-format" ";")
     (display-buffer (current-buffer))))
 
+(defun k-po-memory-bulk-fill-dir-msgstr (dir &optional func)
+  "Do `k-po-memory-bulk-fill-msgstr' for each file in DIR.
+FUNC is passed to `k-po-memory-bulk-fill-msgstr', which see."
+  (interactive "DPO Directory: ")
+  (let* ((files (directory-files-recursively dir (rx ".po" eos) nil nil t))
+         (i 0)
+         (total (length files)))
+    (message "Applying translation memory for files...")
+    (dolist (file files)
+      (cl-incf i)
+      (message "Applying translation memory for files (%s/%s)... (%s)"
+               i total
+               (file-relative-name file dir))
+      (with-current-buffer (find-file-noselect file)
+        (k-po-memory-bulk-fill-msgstr func)
+        (basic-save-buffer)))
+    (message "Applying translation memory for files...done")))
+
 (defun k-po-memory-bulk-fill-msgstr (&optional func)
   "For untranslated entries with just one matching TM entry, apply that TM entry.
 
