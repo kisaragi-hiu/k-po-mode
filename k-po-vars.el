@@ -16,6 +16,11 @@
   "Major mode for editing PO files."
   :group 'i18n)
 
+(defcustom k-po-insert-memory t
+  "Whether to insert Translation Memory when initializing `k-po-mode'"
+  :type 'boolean
+  :group 'k-po)
+
 (defcustom k-po-auto-edit-with-msgid nil
   "*Automatically use msgid when editing untranslated entries."
   :type 'boolean
