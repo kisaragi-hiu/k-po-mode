@@ -1956,9 +1956,11 @@ FUNC is passed to `k-po-memory-bulk-fill-msgstr', which see."
       (message "Applying translation memory for files (%s/%s)... (%s)"
                i total
                (file-relative-name file dir))
-      (with-current-buffer (find-file-noselect file)
-        (k-po-memory-bulk-fill-msgstr func)
-        (basic-save-buffer)))
+      (let ((k-po-insert-memory nil)
+            (inhibit-message t))
+        (with-current-buffer (find-file-noselect file)
+          (k-po-memory-bulk-fill-msgstr func)
+          (basic-save-buffer))))
     (message "Applying translation memory for files...done")))
 
 (defun k-po-memory-bulk-fill-msgstr (&optional func)
