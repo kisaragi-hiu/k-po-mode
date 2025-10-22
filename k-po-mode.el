@@ -72,34 +72,6 @@ The current buffer should be in PO mode, when this function is called."
 
 ;;; PO mode variables and constants (usually not to customize).
 
-(defconst k-po-help-display-string
-  "\
-PO Mode Summary           Next Previous            Miscellaneous
-*: Later, /: Docum        n    p    Any type       .     Redisplay
-                          t    T    Translated
-Moving around             f    F    Fuzzy          ?, h  This help
-<    First if any         o    O    Obsolete       =     Current index
->    Last if any          u    U    Untranslated   0     Other window
-/SPC Auto select                                   V     Validate
-                          Msgstr Comments          M     Mail officially
-Modifying entries         RET  #    Call editor
-TAB   Remove fuzzy mark   k    K    Kill to        E     Edit out full
-DEL   Fuzzy or fade out   w    W    Copy to        Q     Forceful quit
-LFD   Init with msgid     y    Y    Yank from      q     Confirm and quit
-
-Position Stack
-m  Mark and push current
-r  Pop and return
-x  Exchange current/top
-
-Program Sources           Lexicography
-s    Cycle reference      *l    Lookup translation
-M-s  Select reference     *M-l  Add/edit translation
-S    Consider path        *L    Consider lexicon
-M-S  Ignore path          *M-L  Ignore lexicon
-"
-  "Help page for PO mode.")
-
 (defconst k-po-mode-menu-layout
   `("PO"
     ("Moving around"
