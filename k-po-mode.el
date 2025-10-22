@@ -355,6 +355,20 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
     map)
   "Keymap while editing a PO mode entry (or the full PO file).")
 
+(evil-define-key* 'normal k-po-mode-map
+  "RET" #'k-po-edit-msgstr
+  "C-c '" #'k-po-edit-msgstr
+  "C-c C-c" #'k-po-edit-msgstr
+  "L" #'k-po-sidebar-toggle
+  "i" #'k-po-edit-msgstr
+  "f" #'k-po-next-fuzzy-entry
+  "F" #'k-po-previous-fuzzy-entry
+  "I" #'k-po-visit-kde-invent
+  "TAB" #'k-po-toggle-fuzzy)
+
+(evil-define-key* 'normal k-po-subedit-mode-map
+  "RET" #'k-po-subedit-exit)
+
 
 ;;; Window management.
 
