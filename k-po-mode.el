@@ -1388,10 +1388,11 @@ This runs in the context of the PO file buffer.")
                    (k-po-entry-msgid entry))))
       (save-match-data
         (string-match k-po-accelerator-regexp msgid)
-        (insert
-         (if k-po-subedit-insert-accelerator-with-parens
-             (format "(%s)" (match-string 0 msgid))
-           (match-string 0 msgid)))))))
+        (let ((accel (upcase (match-string 0 msgid))))
+          (insert
+           (if k-po-subedit-insert-accelerator-with-parens
+               (format "(%s)" accel)
+             accel)))))))
 
 (defun k-po-subedit-exit ()
   "Exit the subedit buffer, replacing the string in the PO buffer."
@@ -1424,7 +1425,8 @@ This runs in the context of the PO file buffer.")
 
 (evil-define-key* 'normal k-po-subedit-mode-map
   (kbd "RET") #'k-po-subedit-exit
-  (kbd "A") #'k-po-subedit-insert-accelerator)
+  (kbd "A") #'k-po-subedit-insert-accelerator
+  (kbd "<escape>") #'k-po-subedit-exit)
 
 (evil-define-key* 'insert k-po-subedit-mode-map
   (kbd "C-a") #'k-po-subedit-insert-accelerator)
