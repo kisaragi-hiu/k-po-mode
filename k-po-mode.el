@@ -344,6 +344,10 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
 
 (evil-define-key* 'normal k-po-mode-map
   (kbd "RET") #'k-po-edit-msgstr
+  ;; For "original"... I guess
+  (kbd "o") #'k-po-msgid-to-msgstr
+  (kbd "g j") #'k-po-next-entry
+  (kbd "g k") #'k-po-previous-entry
   (kbd "C-c '") #'k-po-edit-msgstr
   (kbd "C-c C-c") #'k-po-edit-msgstr
   (kbd "L") #'k-po-sidebar-toggle
