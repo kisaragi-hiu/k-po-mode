@@ -1275,6 +1275,9 @@ Reminder: slots have the form (ENTRY-MARKER EDIT-BUFFER OVERLAY-INFO).")
 (defvar k-po-subedit--entry-buffer)
 (defvar-local k-po-subedit--reused? nil
   "Used to mark whether a subedit buffer is in a reused window.")
+(defvar-local k-po-subedit--context nil
+  "Used to hold a reference to the entry being edited.
+Should be a two element list, (ORIG-BUFFER ENTRY).")
 
 (defun k-po-ediff-buffers-exit-recursive (b1 b2 oldbuf end)
   "Ediff buffer B1 and B2, pop back to OLDBUF and replace the old variants.
@@ -1372,6 +1375,21 @@ the ediff control panel."
   "Hook run after exiting the subedit buffer.
 This runs in the context of the PO file buffer.")
 
+(defun k-po-subedit-insert-accelerator ()
+  "Insert the accelerator from the entry currently being edited."
+  (interactive)
+  (let* ((context k-po-subedit--context)
+         (buffer (car context))
+         (entry (cadr context)))
+    (unless (and (bufferp buffer)
+                 (k-po-entry-p entry))
+      (error "Context is not available"))
+    (let ((msgid (with-current-buffer buffer
+                   (k-po-entry-msgid entry))))
+      (save-match-data
+        (string-match "[_&][A-Z]" msgid)
+        (insert (match-string 0 msgid))))))
+
 (defun k-po-subedit-exit ()
   "Exit the subedit buffer, replacing the string in the PO buffer."
   (interactive)
@@ -1403,7 +1421,8 @@ This runs in the context of the PO file buffer.")
   "Keymap while editing a PO mode entry (or the full PO file).")
 
 (evil-define-key* 'normal k-po-subedit-mode-map
-  (kbd "RET") #'k-po-subedit-exit)
+  (kbd "RET") #'k-po-subedit-exit
+  (kbd "A") #'k-po-subedit-insert-accelerator)
 
 (define-derived-mode k-po-subedit-mode text-mode "K-PO Subedit"
   "Major mode for `k-po-edit-string'."
@@ -1415,10 +1434,15 @@ This runs in the context of the PO file buffer.")
   (setq-local indent-line-function #'indent-relative))
 
 ;; TODO: tear down po-mode's own subedit code and use edit-indirect instead
-(defun k-po-edit-string (string type expand-tabs)
+(defun k-po-edit-string (string type expand-tabs &optional context)
   "Prepare a pop up buffer for editing STRING, which is of a given TYPE.
 TYPE may be `comment' or `msgstr'.  If EXPAND-TABS, expand tabs to spaces.
-Run functions on k-po-subedit-mode-hook."
+Run functions on k-po-subedit-mode-hook.
+
+If CONTEXT is provided, it should be a list (ORIG-BUFFER ENTRY), and
+ENTRY would be available as context to extra commands in the subedit
+buffer. (ORIG-BUFFER is required because some ENTRY info require
+information only present in the original buffer.)"
   (let ((marker (make-marker)))
     (set-marker marker (cond ((eq type 'comment) k-po-start-of-msgid)
                              ((eq type 'msgstr) k-po-start-of-msgstr-form)))
@@ -1448,6 +1472,8 @@ Run functions on k-po-subedit-mode-hook."
           (k-po-subedit-mode)
           (when (= window-count-before-switch (count-windows))
             (setq-local k-po-subedit--reused? t))
+          (when context
+            (setq-local k-po-subedit--context context))
           (setq-local k-po-subedit-back-pointer slot)
           (setq buffer-file-coding-system edit-coding)
           (erase-buffer)
@@ -1484,7 +1510,8 @@ read `k-po-subedit-ediff' documentation."
                           (k-po-entry-msgid entry)
                         (k-po-entry-msgstr entry))
                       'msgstr
-                      t)))
+                      t
+                      (list (current-buffer) entry))))
 
 (defun k-po-edit-msgstr-and-ediff ()
   "Use `ediff' to edit the current msgstr.
