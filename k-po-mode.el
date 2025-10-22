@@ -343,15 +343,15 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
   (add-hook 'write-contents-functions #'k-po-replace-revision-date))
 
 (evil-define-key* 'normal k-po-mode-map
-  "RET" #'k-po-edit-msgstr
-  "C-c '" #'k-po-edit-msgstr
-  "C-c C-c" #'k-po-edit-msgstr
-  "L" #'k-po-sidebar-toggle
-  "i" #'k-po-edit-msgstr
-  "f" #'k-po-next-fuzzy-entry
-  "F" #'k-po-previous-fuzzy-entry
-  "I" #'k-po-visit-kde-invent
-  "TAB" #'k-po-toggle-fuzzy)
+  (kbd "RET") #'k-po-edit-msgstr
+  (kbd "C-c '") #'k-po-edit-msgstr
+  (kbd "C-c C-c") #'k-po-edit-msgstr
+  (kbd "L") #'k-po-sidebar-toggle
+  (kbd "i") #'k-po-edit-msgstr
+  (kbd "f") #'k-po-next-fuzzy-entry
+  (kbd "F") #'k-po-previous-fuzzy-entry
+  (kbd "I") #'k-po-visit-kde-invent
+  (kbd "TAB") #'k-po-toggle-fuzzy)
 
 
 ;;; Window management.
@@ -1422,7 +1422,7 @@ the ediff control panel."
   "Keymap while editing a PO mode entry (or the full PO file).")
 
 (evil-define-key* 'normal k-po-subedit-mode-map
-  "RET" #'k-po-subedit-exit)
+  (kbd "RET") #'k-po-subedit-exit)
 
 (define-derived-mode k-po-subedit-mode text-mode "K-PO Subedit"
   "Major mode for `k-po-edit-string'."
