@@ -1387,8 +1387,11 @@ This runs in the context of the PO file buffer.")
     (let ((msgid (with-current-buffer buffer
                    (k-po-entry-msgid entry))))
       (save-match-data
-        (string-match "[_&][A-Z]" msgid)
-        (insert (match-string 0 msgid))))))
+        (string-match k-po-accelerator-regexp msgid)
+        (insert
+         (if k-po-subedit-insert-accelerator-with-parens
+             (format "(%s)" (match-string 0 msgid))
+           (match-string 0 msgid)))))))
 
 (defun k-po-subedit-exit ()
   "Exit the subedit buffer, replacing the string in the PO buffer."
@@ -1414,7 +1417,6 @@ This runs in the context of the PO file buffer.")
 (defvar k-po-subedit-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-c") #'k-po-subedit-exit)
-    (define-key map (kbd "C-c C-'") #'k-po-subedit-exit)
     (define-key map (kbd "C-c C-e") #'k-po-subedit-ediff)
     (define-key map (kbd "C-c C-k") #'k-po-subedit-abort)
     map)
@@ -1423,6 +1425,9 @@ This runs in the context of the PO file buffer.")
 (evil-define-key* 'normal k-po-subedit-mode-map
   (kbd "RET") #'k-po-subedit-exit
   (kbd "A") #'k-po-subedit-insert-accelerator)
+
+(evil-define-key* 'insert k-po-subedit-mode-map
+  (kbd "C-a") #'k-po-subedit-insert-accelerator)
 
 (define-derived-mode k-po-subedit-mode text-mode "K-PO Subedit"
   "Major mode for `k-po-edit-string'."

@@ -489,6 +489,18 @@ exactly.")
   "^#~[ \t]*msgstr.*\n\\(#~[ \t]*\".*\n\\)*"
   "Regexp matching a whole msgstr field of an obsolete entry.")
 
+;;;; Accel
+
+(defcustom k-po-accelerator-regexp "[&_][A-Z]"
+  "Regexp matching keyboard accelerators, like \"&A\"."
+  :type 'regexp
+  :group 'k-po)
+
+(defcustom k-po-subedit-insert-accelerator-with-parens t
+  "When inserting keyboard accelerator, whether to insert parens or not."
+  :type 'boolean
+  :group 'k-po)
+
 ;;;; Buffer local variables
 
 ;; The current entry extends from START-OF-ENTRY to END-OF-ENTRY, it
