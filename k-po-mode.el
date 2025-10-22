@@ -217,10 +217,6 @@ M-S  Ignore path          *M-L  Ignore lexicon
      ["Soft quit" k-po-confirm-and-quit
       :help "Save current translation file, than close (kill) it"])))
 
-(defvar k-po-subedit-mode-syntax-table
-  (copy-syntax-table text-mode-syntax-table)
-  "Syntax table used while in PO mode.")
-
 (defconst k-po-subedit-mode-menu-layout
   `("PO-Edit"
     ["Ediff and merge translation variants" k-po-subedit-ediff
@@ -346,15 +342,6 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
   (add-hook 'post-command-hook #'k-po-sidebar--post-command-h nil t)
   (add-hook 'write-contents-functions #'k-po-replace-revision-date))
 
-(defvar k-po-subedit-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c C-c") #'k-po-subedit-exit)
-    (define-key map (kbd "C-c C-'") #'k-po-subedit-exit)
-    (define-key map (kbd "C-c C-e") #'k-po-subedit-ediff)
-    (define-key map (kbd "C-c C-k") #'k-po-subedit-abort)
-    map)
-  "Keymap while editing a PO mode entry (or the full PO file).")
-
 (evil-define-key* 'normal k-po-mode-map
   "RET" #'k-po-edit-msgstr
   "C-c '" #'k-po-edit-msgstr
@@ -365,9 +352,6 @@ all reachable through \\[customize], in group `Emacs.Editing.I18n.K-po'."
   "F" #'k-po-previous-fuzzy-entry
   "I" #'k-po-visit-kde-invent
   "TAB" #'k-po-toggle-fuzzy)
-
-(evil-define-key* 'normal k-po-subedit-mode-map
-  "RET" #'k-po-subedit-exit)
 
 
 ;;; Window management.
@@ -1428,6 +1412,27 @@ the ediff control panel."
                (k-po-unfuzzy)))
             (t (debug))))))
 
+(defvar k-po-subedit-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c C-c") #'k-po-subedit-exit)
+    (define-key map (kbd "C-c C-'") #'k-po-subedit-exit)
+    (define-key map (kbd "C-c C-e") #'k-po-subedit-ediff)
+    (define-key map (kbd "C-c C-k") #'k-po-subedit-abort)
+    map)
+  "Keymap while editing a PO mode entry (or the full PO file).")
+
+(evil-define-key* 'normal k-po-subedit-mode-map
+  "RET" #'k-po-subedit-exit)
+
+(define-derived-mode k-po-subedit-mode text-mode "K-PO Subedit"
+  "Major mode for `k-po-edit-string'."
+  ;; This is how it was when this was set in `k-po-edit-string'
+  :abbrev-table k-po-mode-abbrev-table
+  (when (fboundp 'easy-menu-define)
+    (easy-menu-define k-po-subedit-mode-menu k-po-subedit-mode-map ""
+      k-po-subedit-mode-menu-layout))
+  (setq-local indent-line-function #'indent-relative))
+
 ;; TODO: tear down po-mode's own subedit code and use edit-indirect instead
 (defun k-po-edit-string (string type expand-tabs)
   "Prepare a pop up buffer for editing STRING, which is of a given TYPE.
@@ -1459,30 +1464,19 @@ Run functions on k-po-subedit-mode-hook."
           (setq slot (list marker edit-buffer overlay)
                 k-po-edited-fields (cons slot k-po-edited-fields))
           (pop-to-buffer edit-buffer)
-          (text-mode)
+          (k-po-subedit-mode)
           (when (= window-count-before-switch (count-windows))
             (setq-local k-po-subedit--reused? t))
           (setq-local k-po-subedit-back-pointer slot)
-          (setq-local indent-line-function
-                      'indent-relative)
           (setq buffer-file-coding-system edit-coding)
-          (setq local-abbrev-table k-po-mode-abbrev-table)
           (erase-buffer)
           (insert string)
           (goto-char (point-min))
           (and expand-tabs (setq indent-tabs-mode nil))
-          ;; HACK We're already doing major mode things below
-          (setq-local major-mode 'k-po-subedit-mode)
-          (use-local-map k-po-subedit-mode-map)
-          (when (fboundp 'easy-menu-define)
-            (easy-menu-define k-po-subedit-mode-menu k-po-subedit-mode-map ""
-              k-po-subedit-mode-menu-layout))
           ;; HACK: this shouldn't be necessary if we're using edit-indirect
           (when (and (fboundp 'evil-insert-state)
                      (= (buffer-size) 0))
             (evil-insert-state))
-          (set-syntax-table k-po-subedit-mode-syntax-table)
-          (run-hooks 'k-po-subedit-mode-hook)
           (message "%s" (substitute-command-keys k-po-subedit-message))))))
 
 (defun k-po-edit-comment ()
