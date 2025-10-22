@@ -1367,6 +1367,11 @@ the ediff control panel."
       (kill-buffer edit-buffer)
       (setq k-po-edited-fields (delete back-pointer k-po-edited-fields)))))
 
+(defvar k-po-subedit-exit-hook
+  (list #'k-po-next-entry)
+  "Hook run after exiting the subedit buffer.
+This runs in the context of the PO file buffer.")
+
 (defun k-po-subedit-exit ()
   "Exit the subedit buffer, replacing the string in the PO buffer."
   (interactive)
@@ -1374,7 +1379,6 @@ the ediff control panel."
   (skip-chars-backward " \t\n")
   (when (eq (preceding-char) ?<)
     (delete-region (1- (point)) (point-max)))
-  (run-hooks 'k-po-subedit-exit-hook)
   (let ((str (buffer-string)))
     (k-po-subedit-abort)
     (let ((entry (k-po-current-entry)))
@@ -1386,7 +1390,8 @@ the ediff control panel."
                (k-po-maybe-delete-previous-untranslated))
              (when k-po-auto-unfuzzy-on-edit
                (k-po-unfuzzy)))
-            (t (debug))))))
+            (t (debug))))
+    (run-hooks 'k-po-subedit-exit-hook)))
 
 (defvar k-po-subedit-mode-map
   (let ((map (make-sparse-keymap)))
