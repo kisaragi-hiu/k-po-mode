@@ -1488,8 +1488,7 @@ information only present in the original buffer.)"
           (goto-char (point-min))
           (and expand-tabs (setq indent-tabs-mode nil))
           ;; HACK: this shouldn't be necessary if we're using edit-indirect
-          (when (and (fboundp 'evil-insert-state)
-                     (= (buffer-size) 0))
+          (when (fboundp 'evil-insert-state)
             (evil-insert-state))
           (message "%s" (substitute-command-keys k-po-subedit-message))))))
 
