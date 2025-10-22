@@ -1457,6 +1457,8 @@ Run functions on k-po-subedit-mode-hook."
           (insert string)
           (goto-char (point-min))
           (and expand-tabs (setq indent-tabs-mode nil))
+          ;; HACK We're already doing major mode things below
+          (setq-local major-mode 'k-po-subedit-mode)
           (use-local-map k-po-subedit-mode-map)
           (when (fboundp 'easy-menu-define)
             (easy-menu-define k-po-subedit-mode-menu k-po-subedit-mode-map ""
