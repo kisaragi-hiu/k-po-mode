@@ -136,7 +136,7 @@ MSGID, TARGET-LANG, and SOURCE-BUFFER are passed in from the update function."
   (k-po-sidebar--insert-heading "Other languages")
   (let ((mapping (k-po-memory--rows-count-group
                   (k-po-memory--select
-                   "SELECT target, target_lang
+                   "SELECT DISTINCT target, target_lang
 FROM mapping
 WHERE source = ? AND NOT target_lang = ?
 LIMIT 5"
