@@ -524,20 +524,25 @@ Can be customized with the `k-po-auto-update-file-header' variable."
 ;;; "Current-*" functions
 
 (defun k-po--language->code (language)
-  "Return the language code for LANGUAGE."
+  "Return the language code for LANGUAGE.
+If LANGUAGE is not found in `k-po-team-name-to-code', assume it is
+already a language code."
   (declare (side-effect-free t))
   (let ((pair (or (assoc language k-po-team-name-to-code)
                   ;; For if the value is the code itself
                   (rassoc language k-po-team-name-to-code))))
-    (cdr pair)))
+    (or (cdr pair)
+        language)))
 
 (defun k-po--language<-code (code)
-  "Return the name for the language identified by CODE."
+  "Return the name for the language identified by CODE.
+If CODE is not in `k-po-team-name-to-code', it is returned as-is."
   (declare (side-effect-free t))
   (let ((pair (or (assoc code k-po-team-name-to-code)
                   ;; For if the value is the code itself
                   (rassoc code k-po-team-name-to-code))))
-    (car pair)))
+    (or (car pair)
+        code)))
 
 (defun k-po-current-source-language ()
   "Return the source language code of the current file.
