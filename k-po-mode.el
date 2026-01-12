@@ -525,12 +525,7 @@ Can be customized with the `k-po-auto-update-file-header' variable."
 
 (defun k-po--language->code (language)
   "Return the language code for LANGUAGE."
-  ;; This is not technically pure, since it reads from `k-po-team-name-to-code'.
-  ;; But that variable is meant to be a constant, and can be seen as just a
-  ;; (leaky) implementation detail, so I'm still going to mark this as pure to
-  ;; stand out from a sea of ancient functions that are swimming in global
-  ;; variables.
-  (declare (pure t) (side-effect-free t))
+  (declare (side-effect-free t))
   (let ((pair (or (assoc language k-po-team-name-to-code)
                   ;; For if the value is the code itself
                   (rassoc language k-po-team-name-to-code))))
@@ -538,12 +533,7 @@ Can be customized with the `k-po-auto-update-file-header' variable."
 
 (defun k-po--language<-code (code)
   "Return the name for the language identified by CODE."
-  ;; This is not technically pure, since it reads from `k-po-team-name-to-code'.
-  ;; But that variable is meant to be a constant, and can be seen as just a
-  ;; (leaky) implementation detail, so I'm still going to mark this as pure to
-  ;; stand out from a sea of ancient functions that are swimming in global
-  ;; variables.
-  (declare (pure t) (side-effect-free t))
+  (declare (side-effect-free t))
   (let ((pair (or (assoc code k-po-team-name-to-code)
                   ;; For if the value is the code itself
                   (rassoc code k-po-team-name-to-code))))
