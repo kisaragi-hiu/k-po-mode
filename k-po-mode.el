@@ -1941,7 +1941,8 @@ strings remain."
                           (concat (f-base po) ".mo"))
                 (f-join (xdg-data-home)
                         "locale"
-                        "zh_TW"
+                        (or (k-po-current-target-language)
+                            "zh_TW")
                         "LC_MESSAGES"
                         (concat (f-base po) ".mo")))))
      (list po mo)))
