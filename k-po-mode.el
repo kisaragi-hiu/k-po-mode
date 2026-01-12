@@ -1478,6 +1478,7 @@ information only present in the original buffer.)"
             (setq-local k-po-subedit--context context))
           (setq-local k-po-subedit-back-pointer slot)
           (setq buffer-file-coding-system edit-coding)
+          (whitespace-mode)
           (erase-buffer)
           (insert string)
           (goto-char (point-min))
