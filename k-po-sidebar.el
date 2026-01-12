@@ -143,15 +143,16 @@ LIMIT 5"
                    msgid target-lang))))
     (if (not mapping)
         (insert (propertize "None" 'face 'italic))
-      (insert
-       (string-join
-        (mapcar (pcase-lambda (`(,_count (,target ,lang)))
-                  (faceup-render-string
-                   (format "«B:%s» «I:%s»"
-                           target
-                           (k-po--language<-code lang))))
-                mapping)
-        "\n")))))
+      (let* ((multiline nil)
+             (strings (mapcar (pcase-lambda (`(,_count (,target ,lang)))
+                                (when (string-match-p "\n" target)
+                                  (setq multiline t))
+                                (faceup-render-string
+                                 (format "«B:%s» «I:%s»"
+                                         target
+                                         (k-po--language<-code lang))))
+                              mapping)))
+        (insert (string-join strings (if multiline "\n\n" "\n")))))))
 
 (defun k-po-sidebar--widget--translation-memory (msgid target-lang source-buffer)
   "Insert the translation memory languages widget.
