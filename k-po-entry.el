@@ -210,7 +210,10 @@ fuzzy, untranslated, or translated."
             (goto-char k-po-start-of-entry)
             (if (re-search-forward k-po-fuzzy-regexp k-po-start-of-msgctxt t)
                 'fuzzy
-              (goto-char k-po-start-of-msgstr-block)
+              ;; untranslated-regexp only matches the last msgstr line, so go to
+              ;; the last msgstr line before checking.
+              (goto-char k-po-end-of-entry)
+              (forward-line -1)
               (if (looking-at k-po-untranslated-regexp)
                   'untranslated
                 'translated))))
