@@ -164,6 +164,7 @@ slightly different."
     ("Taiwanese Mandarin" . "zh_TW")
     ("Hokkien" . "nan")
     ("Taiwanese" . "nan_TW")
+    ("Taiwanese Hokkien" . "nan_TW")
     ("Church Slavic" . "cu")
     ("Chuvash" . "cv")
     ("Cornish" . "kw")
