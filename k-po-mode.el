@@ -1403,6 +1403,14 @@ This runs in the context of the PO file buffer.")
              (k-po-set-comment str entry)
              (k-po-redisplay))
             ((= (point) (k-po-entry-msgstr-form-start entry))
+             (pcase (list (string-suffix-p "\n" (k-po-entry-msgid entry))
+                          (string-suffix-p "\n" str))
+               ;; msgid has no ending newline -> ensure no final newline
+               (`(nil t)
+                (setq str (substring str 0 (1- (length str)))))
+               ;; msgid has ending newline -> ensure final newline
+               (`(t nil)
+                (setq str (concat str "\n"))))
              (when (k-po-set-msgstr-form str entry)
                (k-po-maybe-delete-previous-untranslated))
              (when k-po-auto-unfuzzy-on-edit
